@@ -323,10 +323,11 @@ aws iam create-policy \
   --policy-name github-actions-sample-cicd \
   --policy-document file:///tmp/github-actions-policy.json
 
-# ポリシーをユーザーにアタッチ（<AWS_ACCOUNT_ID> を実際の値に置き換え）
+# ポリシーをユーザーにアタッチ
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 aws iam attach-user-policy \
   --user-name github-actions-sample-cicd \
-  --policy-arn arn:aws:iam::<AWS_ACCOUNT_ID>:policy/github-actions-sample-cicd
+  --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/github-actions-sample-cicd
 ```
 
 ### 5.3 GitHub Secrets の設定
@@ -443,20 +444,22 @@ terraform destroy
 ### 7.3 IAM ユーザーのクリーンアップ
 
 ```bash
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
 # アクセスキーの削除
-aws iam list-access-keys --user-name github-actions-sample-cicd
+ACCESS_KEY_ID=$(aws iam list-access-keys --user-name github-actions-sample-cicd --query 'AccessKeyMetadata[0].AccessKeyId' --output text)
 aws iam delete-access-key \
   --user-name github-actions-sample-cicd \
-  --access-key-id <ACCESS_KEY_ID>
+  --access-key-id $ACCESS_KEY_ID
 
 # ポリシーのデタッチ
 aws iam detach-user-policy \
   --user-name github-actions-sample-cicd \
-  --policy-arn arn:aws:iam::<AWS_ACCOUNT_ID>:policy/github-actions-sample-cicd
+  --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/github-actions-sample-cicd
 
 # ポリシーの削除
 aws iam delete-policy \
-  --policy-arn arn:aws:iam::<AWS_ACCOUNT_ID>:policy/github-actions-sample-cicd
+  --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/github-actions-sample-cicd
 
 # IAM ユーザーの削除
 aws iam delete-user --user-name github-actions-sample-cicd
