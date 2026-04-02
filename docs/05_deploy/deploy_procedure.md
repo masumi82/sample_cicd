@@ -381,10 +381,10 @@ CI ジョブ成功後、CD ジョブで以下が成功することを確認:
 
 ```bash
 # ALB 経由でアプリケーションにアクセス
-curl http://<ALB_DNS_NAME>/
+curl http://$ALB_DNS/
 # → {"message":"Hello, World!"}
 
-curl http://<ALB_DNS_NAME>/health
+curl http://<ALB_DNS>/health/
 # → {"status":"healthy"}
 ```
 
@@ -402,7 +402,7 @@ aws logs describe-log-streams \
 # ログイベントの取得（<LOG_STREAM_NAME> を上記の結果に置き換え）
 aws logs get-log-events \
   --log-group-name /ecs/sample-cicd \
-  --log-stream-name <LOG_STREAM_NAME> \
+  --log-stream-name app/app/06bcb5fb563048d7b43d6566c0d64cce \
   --limit 20 \
   --region ap-northeast-1
 ```
