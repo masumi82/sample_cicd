@@ -63,3 +63,37 @@ variable "db_port" {
   type        = number
   default     = 5432
 }
+
+# --- v3: Auto Scaling ---
+
+variable "ecs_min_count" {
+  description = "Minimum number of ECS tasks for Auto Scaling"
+  type        = number
+  default     = 1
+}
+
+variable "ecs_max_count" {
+  description = "Maximum number of ECS tasks for Auto Scaling"
+  type        = number
+  default     = 3
+}
+
+variable "ecs_cpu_target_value" {
+  description = "Target CPU utilization (%) for ECS Auto Scaling"
+  type        = number
+  default     = 70.0
+}
+
+# --- v3: HTTPS (code only, disabled by default) ---
+
+variable "enable_https" {
+  description = "Enable HTTPS resources (ACM, Route53, HTTPS listener). Requires domain_name to be set."
+  type        = bool
+  default     = false
+}
+
+variable "domain_name" {
+  description = "Custom domain name for HTTPS. Required when enable_https = true."
+  type        = string
+  default     = ""
+}
