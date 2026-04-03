@@ -17,3 +17,13 @@ output "ecs_service_name" {
   description = "Name of the ECS service"
   value       = aws_ecs_service.app.name
 }
+
+output "rds_endpoint" {
+  description = "Endpoint of the RDS instance"
+  value       = aws_db_instance.main.endpoint
+}
+
+output "secrets_manager_arn" {
+  description = "ARN of the Secrets Manager secret"
+  value       = aws_secretsmanager_secret.db_credentials.arn
+}

@@ -30,6 +30,29 @@ resource "aws_ecs_task_definition" "app" {
         }
       ]
 
+      secrets = [
+        {
+          name      = "DB_USERNAME"
+          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:username::"
+        },
+        {
+          name      = "DB_PASSWORD"
+          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:password::"
+        },
+        {
+          name      = "DB_HOST"
+          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:host::"
+        },
+        {
+          name      = "DB_PORT"
+          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:port::"
+        },
+        {
+          name      = "DB_NAME"
+          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:dbname::"
+        }
+      ]
+
       logConfiguration = {
         logDriver = "awslogs"
         options = {

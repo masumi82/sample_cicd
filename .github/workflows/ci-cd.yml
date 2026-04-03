@@ -30,7 +30,7 @@ jobs:
         run: pytest tests/ -v
 
       - name: Build Docker image
-        run: docker build -t sample-cicd:test ./app
+        run: docker build -t sample-cicd:test -f app/Dockerfile .
 
   cd:
     needs: ci
@@ -59,7 +59,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           SHORT_SHA=$(echo $IMAGE_TAG | cut -c1-7)
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA ./app
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA -f app/Dockerfile .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest

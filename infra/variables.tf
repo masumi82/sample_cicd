@@ -39,3 +39,27 @@ variable "desired_count" {
   type        = number
   default     = 1
 }
+
+variable "db_instance_class" {
+  description = "RDS instance class"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "RDS allocated storage in GB"
+  type        = number
+  default     = 20
+}
+
+variable "db_name" {
+  description = "Database name"
+  type        = string
+  default     = "sample_cicd"
+}
+
+variable "db_port" {
+  description = "Database port"
+  type        = number
+  default     = 5432
+}

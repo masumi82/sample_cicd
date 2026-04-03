@@ -1,8 +1,37 @@
 """FastAPI application for sample_cicd project."""
 
+from contextlib import asynccontextmanager
+
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 
-app = FastAPI()
+from app.routers.tasks import router as tasks_router
+
+
+def _run_migrations() -> None:
+    """Run Alembic migrations on startup."""
+    import os
+
+    alembic_ini = os.path.join(os.path.dirname(__file__), "alembic.ini")
+    alembic_cfg = Config(alembic_ini)
+    command.upgrade(alembic_cfg, "head")
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """Application lifespan handler for startup/shutdown events.
+
+    Args:
+        application: FastAPI application instance.
+    """
+    _run_migrations()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+app.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
 
 
 @app.get("/")
