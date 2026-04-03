@@ -27,6 +27,8 @@ jobs:
         run: ruff check app/ tests/
 
       - name: Test
+        env:
+          DATABASE_URL: "sqlite://"
         run: pytest tests/ -v
 
       - name: Build Docker image
