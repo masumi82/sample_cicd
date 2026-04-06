@@ -21,3 +21,9 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Learning notes (not for commit)
+docs/06_learning/
+
+# Lambda build artifacts
+lambda/*.zip

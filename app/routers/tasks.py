@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Task
 from app.schemas import TaskCreate, TaskResponse, TaskUpdate
+from app.services.events import publish_task_completed, publish_task_created
 
 router = APIRouter()
 
@@ -38,6 +39,7 @@ def create_task(task_in: TaskCreate, db: Session = Depends(get_db)) -> Task:
     db.add(task)
     db.commit()
     db.refresh(task)
+    publish_task_created(task.id, task.title)
     return task
 
 
@@ -82,12 +84,17 @@ def update_task(
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    was_completed = task.completed
     update_data = task_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(task, field, value)
 
     db.commit()
     db.refresh(task)
+
+    if task.completed and not was_completed:
+        publish_task_completed(task.id, task.title)
+
     return task
 
 

@@ -60,3 +60,174 @@ resource "aws_iam_role_policy_attachment" "ecs_secrets_manager" {
   role       = aws_iam_role.ecs_task_execution.name
   policy_arn = aws_iam_policy.secrets_manager_read.arn
 }
+
+# ECS Task Role policy — SQS / EventBridge への送信権限
+resource "aws_iam_role_policy" "ecs_task_events" {
+  name = "${var.project_name}-ecs-task-events"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "sqs:SendMessage"
+        Resource = aws_sqs_queue.task_events.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "events:PutEvents"
+        Resource = aws_cloudwatch_event_bus.main.arn
+      }
+    ]
+  })
+}
+
+# --- Lambda IAM ロール ---
+
+# task_created_handler: SQS 受信 + CloudWatch Logs
+resource "aws_iam_role" "lambda_task_created" {
+  name = "${var.project_name}-lambda-task-created"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+        Action    = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name    = "${var.project_name}-lambda-task-created"
+    Project = var.project_name
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_task_created" {
+  name = "${var.project_name}-lambda-task-created-policy"
+  role = aws_iam_role.lambda_task_created.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = aws_sqs_queue.task_events.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "${aws_cloudwatch_log_group.lambda_task_created.arn}:*"
+      }
+    ]
+  })
+}
+
+# task_completed_handler: CloudWatch Logs のみ
+resource "aws_iam_role" "lambda_task_completed" {
+  name = "${var.project_name}-lambda-task-completed"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+        Action    = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name    = "${var.project_name}-lambda-task-completed"
+    Project = var.project_name
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_task_completed" {
+  name = "${var.project_name}-lambda-task-completed-policy"
+  role = aws_iam_role.lambda_task_completed.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "${aws_cloudwatch_log_group.lambda_task_completed.arn}:*"
+      }
+    ]
+  })
+}
+
+# task_cleanup_handler: Secrets Manager + CloudWatch Logs + VPC ENI 操作
+resource "aws_iam_role" "lambda_task_cleanup" {
+  name = "${var.project_name}-lambda-task-cleanup"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+        Action    = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name    = "${var.project_name}-lambda-task-cleanup"
+    Project = var.project_name
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_task_cleanup" {
+  name = "${var.project_name}-lambda-task-cleanup-policy"
+  role = aws_iam_role.lambda_task_cleanup.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "secretsmanager:GetSecretValue"
+        Resource = aws_secretsmanager_secret.db_credentials.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "${aws_cloudwatch_log_group.lambda_task_cleanup.arn}:*"
+      },
+      {
+        # VPC 内 Lambda に必要な ENI 操作権限
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}

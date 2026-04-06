@@ -27,3 +27,28 @@ output "secrets_manager_arn" {
   description = "ARN of the Secrets Manager secret"
   value       = aws_secretsmanager_secret.db_credentials.arn
 }
+
+output "sqs_queue_url" {
+  description = "URL of the SQS task events queue"
+  value       = aws_sqs_queue.task_events.url
+}
+
+output "eventbridge_bus_name" {
+  description = "Name of the EventBridge custom event bus"
+  value       = aws_cloudwatch_event_bus.main.name
+}
+
+output "lambda_task_created_arn" {
+  description = "ARN of the task_created_handler Lambda function"
+  value       = aws_lambda_function.task_created_handler.arn
+}
+
+output "lambda_task_completed_arn" {
+  description = "ARN of the task_completed_handler Lambda function"
+  value       = aws_lambda_function.task_completed_handler.arn
+}
+
+output "lambda_task_cleanup_arn" {
+  description = "ARN of the task_cleanup_handler Lambda function"
+  value       = aws_lambda_function.task_cleanup_handler.arn
+}

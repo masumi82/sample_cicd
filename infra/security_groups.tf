@@ -85,6 +85,11 @@ resource "aws_security_group" "rds" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # aws_security_group_rule (lambda_cleanup) と inline ingress の競合を防ぐ
+  lifecycle {
+    ignore_changes = [ingress]
+  }
+
   tags = {
     Name = "${var.project_name}-rds-sg"
   }

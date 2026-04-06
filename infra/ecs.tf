@@ -30,6 +30,21 @@ resource "aws_ecs_task_definition" "app" {
         }
       ]
 
+      environment = [
+        {
+          name  = "AWS_REGION"
+          value = var.aws_region
+        },
+        {
+          name  = "SQS_QUEUE_URL"
+          value = aws_sqs_queue.task_events.url
+        },
+        {
+          name  = "EVENTBRIDGE_BUS_NAME"
+          value = aws_cloudwatch_event_bus.main.name
+        }
+      ]
+
       secrets = [
         {
           name      = "DB_USERNAME"

@@ -97,3 +97,28 @@ variable "domain_name" {
   type        = string
   default     = ""
 }
+
+# --- v4: Event-Driven Architecture ---
+
+variable "lambda_log_retention_days" {
+  description = "CloudWatch Logs retention in days for Lambda functions"
+  type        = number
+  default     = 7
+}
+
+variable "cleanup_schedule_expression" {
+  description = "EventBridge Scheduler cron expression for task cleanup (UTC)"
+  type        = string
+  default     = "cron(0 15 * * ? *)" # 毎日 0:00 JST
+}
+
+variable "cleanup_retention_days" {
+  description = "Days to retain completed tasks before cleanup Lambda deletes them"
+  type        = number
+  default     = 30
+}
+
+variable "psycopg2_layer_arn" {
+  description = "ARN of the Lambda Layer containing psycopg2 for Python 3.12"
+  type        = string
+}

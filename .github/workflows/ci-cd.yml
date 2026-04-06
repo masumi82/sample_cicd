@@ -21,10 +21,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r app/requirements.txt
-          pip install ruff pytest httpx
+          pip install ruff pytest httpx "moto[sqs,events]"
 
       - name: Lint
-        run: ruff check app/ tests/
+        run: ruff check app/ tests/ lambda/
 
       - name: Test
         env:
@@ -87,3 +87,23 @@ jobs:
           service: sample-cicd
           cluster: sample-cicd
           wait-for-service-stability: true
+
+      - name: Package and deploy Lambda functions
+        run: |
+          zip -j lambda/task_created_handler.zip lambda/task_created_handler.py
+          aws lambda update-function-code \
+            --function-name sample-cicd-task-created-handler \
+            --zip-file fileb://lambda/task_created_handler.zip \
+            --region ap-northeast-1
+
+          zip -j lambda/task_completed_handler.zip lambda/task_completed_handler.py
+          aws lambda update-function-code \
+            --function-name sample-cicd-task-completed-handler \
+            --zip-file fileb://lambda/task_completed_handler.zip \
+            --region ap-northeast-1
+
+          zip -j lambda/task_cleanup_handler.zip lambda/task_cleanup_handler.py
+          aws lambda update-function-code \
+            --function-name sample-cicd-task-cleanup-handler \
+            --zip-file fileb://lambda/task_cleanup_handler.zip \
+            --region ap-northeast-1
