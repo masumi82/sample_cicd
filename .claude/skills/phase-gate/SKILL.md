@@ -12,8 +12,8 @@ All output must be in Japanese.
 
 ## Phase Definitions
 
-> **Note**: v1〜v5 の成果物を管理する。v1・v2・v3・v4 は完了済み。
-> 引数が `1`〜`5` の場合は v5 のフェーズをチェックする。
+> **Note**: v1〜v6 の成果物を管理する。v1・v2・v3・v4・v5 は完了済み。
+> 引数が `1`〜`5` の場合は v6 のフェーズをチェックする。
 
 ### Phase 1: Requirements (要件定義)
 Required deliverables (v1 & v2 — 完了済み):
@@ -29,9 +29,13 @@ Required deliverables (v4 — 完了済み):
 - [x] `docs/01_requirements/requirements_v4.md` — SQS + Lambda + EventBridge イベント駆動アーキテクチャの要件
 - [x] CLAUDE.md に v4 の情報が反映済みであること
 
-Required deliverables (v5):
-- [ ] `docs/01_requirements/requirements_v5.md` — S3 + CloudFront + Presigned URL + Terraform Workspace の要件
-- [ ] CLAUDE.md に v5 の情報が反映済みであること
+Required deliverables (v5 — 完了済み):
+- [x] `docs/01_requirements/requirements_v5.md` — S3 + CloudFront + Presigned URL + Terraform Workspace の要件
+- [x] CLAUDE.md に v5 の情報が反映済みであること
+
+Required deliverables (v6):
+- [ ] `docs/01_requirements/requirements_v6.md` — Observability (CloudWatch Dashboard/Alarms, X-Ray, SNS, 構造化ログ) + Web UI (React SPA on S3+CloudFront, CORS, フロントエンド CI/CD) の要件
+- [ ] CLAUDE.md に v6 の情報が反映済みであること
 
 ### Phase 2: Design (設計)
 Required deliverables (v1 & v2 — 完了済み):
@@ -55,10 +59,15 @@ Required deliverables (v4 — 完了済み):
 - [x] `docs/02_design/infrastructure_v4.md` — Terraform リソース設計（SQS, Lambda, EventBridge, VPC エンドポイント）
 - [x] `docs/02_design/cicd_v4.md` — CI/CD パイプライン設計（Lambda デプロイ追加）
 
-Required deliverables (v5):
-- [ ] `docs/02_design/architecture_v5.md` — アーキテクチャ設計（S3 + CloudFront + Terraform Workspace）
-- [ ] `docs/02_design/infrastructure_v5.md` — Terraform リソース設計（S3, CloudFront, OAC, Workspace 命名）
-- [ ] `docs/02_design/cicd_v5.md` — CI/CD パイプライン設計（DEPLOY_ENV + 環境名対応）
+Required deliverables (v5 — 完了済み):
+- [x] `docs/02_design/architecture_v5.md` — アーキテクチャ設計（S3 + CloudFront + Terraform Workspace）
+- [x] `docs/02_design/infrastructure_v5.md` — Terraform リソース設計（S3, CloudFront, OAC, Workspace 命名）
+- [x] `docs/02_design/cicd_v5.md` — CI/CD パイプライン設計（DEPLOY_ENV + 環境名対応）
+
+Required deliverables (v6):
+- [ ] `docs/02_design/architecture_v6.md` — アーキテクチャ設計（Observability: Dashboard/Alarms/X-Ray/構造化ログ + Web UI: React SPA on S3+CloudFront）
+- [ ] `docs/02_design/infrastructure_v6.md` — Terraform リソース設計（monitoring.tf, sns.tf, webui.tf, X-Ray sidecar, IAM 更新）
+- [ ] `docs/02_design/cicd_v6.md` — CI/CD パイプライン設計（Node.js セットアップ + フロントエンドビルド・デプロイ）
 
 ### Phase 3: Implementation (実装)
 Required deliverables (v1 & v2 — 完了済み):
@@ -89,24 +98,46 @@ Required deliverables (v4 — 完了済み):
 - [x] `infra/variables.tf` — v4 変数追加
 - [x] Code passes lint and Terraform validate
 
-Required deliverables (v5):
-- [ ] `app/models.py` — Attachment モデル追加
-- [ ] `app/schemas.py` — Attachment スキーマ + filename サニタイズバリデータ追加
-- [ ] `app/services/storage.py` — S3 Presigned URL 生成 + オブジェクト削除サービス
-- [ ] `app/routers/attachments.py` — 添付ファイル CRUD エンドポイント（4 個）
-- [ ] `app/alembic/versions/002_create_attachments_table.py` — Alembic マイグレーション
-- [ ] `app/main.py` — attachments router 登録
-- [ ] `app/routers/tasks.py` — タスク削除時の S3 オブジェクト一括削除
-- [ ] `infra/main.tf` — locals ブロック + Workspace 命名（`${local.prefix}`）
-- [ ] `infra/s3.tf` — S3 バケット + パブリックアクセスブロック + バケットポリシー + CORS + 暗号化 + バージョニング
-- [ ] `infra/cloudfront.tf` — CloudFront ディストリビューション + OAC
-- [ ] `infra/variables.tf` — v5 変数追加（db_multi_az, cloudfront_price_class, cors_allowed_origins, s3_versioning_enabled）
-- [ ] `infra/ecs.tf` — S3_BUCKET_NAME, CLOUDFRONT_DOMAIN_NAME 環境変数追加
-- [ ] `infra/iam.tf` — ECS タスクロールに S3 PutObject/DeleteObject 権限追加
-- [ ] `infra/dev.tfvars`, `infra/prod.tfvars` — 環境別変数ファ��ル
-- [ ] 全 .tf ファイル — `${var.project_name}` → `${local.prefix}` 置換
-- [ ] `.github/workflows/ci-cd.yml` — DEPLOY_ENV + 環境名付きリソース名
-- [ ] Code passes lint and Terraform validate
+Required deliverables (v5 — 完了済み):
+- [x] `app/models.py` — Attachment モデル追加
+- [x] `app/schemas.py` — Attachment スキーマ + filename サニタイズバリデータ追加
+- [x] `app/services/storage.py` — S3 Presigned URL 生成 + オブジェクト削除サービス
+- [x] `app/routers/attachments.py` — 添付ファイル CRUD エンドポイント（4 個）
+- [x] `app/alembic/versions/002_create_attachments_table.py` — Alembic マイグレーション
+- [x] `app/main.py` — attachments router 登録
+- [x] `app/routers/tasks.py` — タスク削除時の S3 オブジェクト一括削除
+- [x] `infra/main.tf` — locals ブロック + Workspace 命名（`${local.prefix}`）
+- [x] `infra/s3.tf` — S3 バケット + パブリックアクセスブロック + バケットポリシー + CORS + 暗号化 + バージョニング
+- [x] `infra/cloudfront.tf` — CloudFront ディストリビューション + OAC
+- [x] `infra/variables.tf` — v5 変数追加（db_multi_az, cloudfront_price_class, cors_allowed_origins, s3_versioning_enabled）
+- [x] `infra/ecs.tf` — S3_BUCKET_NAME, CLOUDFRONT_DOMAIN_NAME 環境変数追加
+- [x] `infra/iam.tf` — ECS タスクロールに S3 PutObject/DeleteObject 権限追加
+- [x] `infra/dev.tfvars`, `infra/prod.tfvars` — 環境別変数ファイル
+- [x] 全 .tf ファイル — `${var.project_name}` → `${local.prefix}` 置換
+- [x] `.github/workflows/ci-cd.yml` — DEPLOY_ENV + 環境名付きリソース名
+- [x] Code passes lint and Terraform validate
+
+Required deliverables (v6):
+- [ ] `infra/monitoring.tf` — CloudWatch Dashboard (1) + Alarms (12)
+- [ ] `infra/sns.tf` — SNS Topic（サブスクリプションは conditional: alarm_email が空なら作成しない）
+- [ ] `infra/webui.tf` — Web UI 用 S3 バケット + CloudFront ディストリビューション（OAC, SPA フォールバック）
+- [ ] `infra/variables.tf` — v6 変数追加（alarm 閾値, alarm_email 等）
+- [ ] `infra/outputs.tf` — v6 出力追加（dashboard_url, sns_topic_arn, webui_bucket_name, webui_cloudfront_domain_name, webui_cloudfront_distribution_id）
+- [ ] `infra/dev.tfvars` — v6 変数値追加
+- [ ] `infra/prod.tfvars` — v6 変数値追加
+- [ ] `infra/iam.tf` — ECS タスクロール + Lambda 3 ロールに X-Ray 権限追加
+- [ ] `infra/ecs.tf` — X-Ray daemon サイドカー追加、環境変数追加（ENABLE_XRAY, CORS_ALLOWED_ORIGINS）、CPU/Memory 引き上げ
+- [ ] `infra/logs.tf` — X-Ray daemon 用 CloudWatch Log Group 追加
+- [ ] `infra/lambda.tf` — 3 関数に `tracing_config { mode = "Active" }` 追加
+- [ ] `app/requirements.txt` — `aws-xray-sdk` 追加
+- [ ] `app/main.py` — X-Ray SDK 初期化（graceful degradation）、CORSMiddleware 追加、構造化ログ（JSONFormatter）設定
+- [ ] `lambda/task_created_handler.py` — 構造化ログ（JSONFormatter）追加
+- [ ] `lambda/task_completed_handler.py` — 構造化ログ（JSONFormatter）追加
+- [ ] `lambda/task_cleanup_handler.py` — 構造化ログ（JSONFormatter）追加
+- [ ] `frontend/` — React + Vite SPA（package.json, vite.config.js, src/ 配下コンポーネント群）
+- [ ] `.github/workflows/ci-cd.yml` — Node.js セットアップ + フロントエンドビルド (CI) + S3 sync + CloudFront invalidation (CD)
+- [ ] Code passes lint (`ruff check app/ tests/ lambda/`) and Terraform validate
+- [ ] Frontend builds successfully (`cd frontend && npm ci && npm run build`)
 
 ### Phase 4: Test (テスト)
 Required deliverables (v1 & v2 — 完了済み):
@@ -125,10 +156,15 @@ Required deliverables (v4 — 完了済み):
 - [x] `tests/test_tasks.py` — SQS / EventBridge 送信のモックテスト追加（moto 使用）
 - [x] v3 までの既存テストが引き続き全件 PASS
 
-Required deliverables (v5):
-- [ ] `docs/04_test/test_plan_v5.md` — テスト計画書（v5）
-- [ ] `tests/test_attachments.py` — 添付ファイル CRUD + スキーマバリデーションテスト（TC-24〜TC-39）
-- [ ] v4 までの既存テスト（TC-01〜TC-23）が引き続き全件 PASS
+Required deliverables (v5 — 完了済み):
+- [x] `docs/04_test/test_plan_v5.md` — テスト計画書（v5）
+- [x] `tests/test_attachments.py` — 添付ファイル CRUD + スキーマバリデーションテスト（TC-24〜TC-39）
+- [x] v4 までの既存テスト（TC-01〜TC-23）が引き続き全件 PASS
+
+Required deliverables (v6):
+- [ ] `docs/04_test/test_plan_v6.md` — テスト計画書（v6）
+- [ ] `tests/test_observability.py` — CORS / 構造化ログ / X-Ray graceful degradation テスト（TC-40〜TC-46）
+- [ ] v5 までの既存テスト（TC-01〜TC-39, 46 件）が引き続き全件 PASS
 
 ### Phase 5: Deploy (デプロイ)
 Required deliverables (v1 & v2 — 完了済み):
@@ -150,15 +186,28 @@ Required deliverables (v4 — 完了済み):
 - [x] `PUT /tasks/{id}` で completed=true 更新後に Lambda ログで完了イベント受信を確認
 - [x] Scheduler による定期クリーンアップ Lambda の実行を確認
 
-Required deliverables (v5):
-- [ ] `docs/05_deploy/deploy_procedure_v5.md` — デプロイ手順書（v5）
-- [ ] `docs/05_deploy/verification_v5.md` — 動作確認記録（v5）
-- [ ] v4 インフラ破棄 → Terraform Workspace `dev` 作成 → `terraform apply -var-file=dev.tfvars`
-- [ ] S3 バケット + CloudFront ディストリビューションが作成済み
-- [ ] `POST /tasks/{id}/attachments` で Presigned URL が返却されることを確認
-- [ ] Presigned URL 経由でファイルアップロード → CloudFront 経由でダウンロード可能を確認
-- [ ] `DELETE /tasks/{id}/attachments/{id}` で S3 オブジェクトが削除されることを確認
-- [ ] 全リソース名が `sample-cicd-dev-*` パターンであることを確認
+Required deliverables (v5 — 完了済み):
+- [x] `docs/05_deploy/deploy_procedure_v5.md` — デプロイ手順書（v5）
+- [x] `docs/05_deploy/verification_v5.md` — 動作確認記録（v5）
+- [x] v4 インフラ破棄 → Terraform Workspace `dev` 作成 → `terraform apply -var-file=dev.tfvars`
+- [x] S3 バケット + CloudFront ディストリビューションが作成済み
+- [x] `POST /tasks/{id}/attachments` で Presigned URL が返却されることを確認
+- [x] Presigned URL 経由でファイルアップロード → CloudFront 経由でダウンロード可能を確認
+- [x] `DELETE /tasks/{id}/attachments/{id}` で S3 オブジェクトが削除されることを確認
+- [x] 全リソース名が `sample-cicd-dev-*` パターンであることを確認
+
+Required deliverables (v6):
+- [ ] `docs/05_deploy/deploy_procedure_v6.md` — デプロイ手順書（v6）
+- [ ] `docs/05_deploy/verification_v6.md` — 動作確認記録（v6）
+- [ ] `terraform apply` で CloudWatch Dashboard / Alarms / SNS Topic / Web UI S3 / Web UI CloudFront が作成済み
+- [ ] CloudWatch Dashboard にメトリクス���表示されることを確認
+- [ ] CloudWatch Alarms が作成され、大部分が OK 状態であることを確認
+- [ ] X-Ray コンソールでトレースが表示されることを確認
+- [ ] ECS ログが JSON 形式で出力されていることを確認（構造化ログ）
+- [ ] Web UI (CloudFront URL) にブラウザからアクセスできることを確認
+- [ ] Web UI からタスクの一覧・作成・編集・削除・完了切替が動作することを確認
+- [ ] Web UI から添付ファイルのアップロード・ダウンロード・削除が動作すること���確認
+- [ ] CI/CD パイプラインでフロントエンドビルド・デプロイが成功することを確認
 
 ## Review Process
 
@@ -167,7 +216,7 @@ Required deliverables (v5):
 3. Read each deliverable and verify it has substantive content (not just placeholders)
 4. For code deliverables (Phase 3+), verify the code is syntactically valid
 5. **For Phase 3, 4: `code-review-expert` エージェントで変更コードのレビューを実施し、結果を出力に含める**
-   - Phase 3: `app/` および `infra/` 配下の変更ファイル
+   - Phase 3: `app/` および `infra/` 配下の変更ファイル + `frontend/` 配下
    - Phase 4: `tests/` 配下のテストファイル
 6. Output a checklist showing pass/fail for each item
 7. If all items pass AND codex-review raises no blocking issues: declare the phase COMPLETE and recommend proceeding to the next phase
