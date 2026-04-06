@@ -423,9 +423,10 @@ terraform destroy -var-file=dev.tfvars
 ### 11.3 Lambda Layer 削除
 
 ```bash
+# バージョン番号は実際の値に置き換えること（v5 デプロイ時は 2）
 aws lambda delete-layer-version \
   --layer-name sample-cicd-psycopg2 \
-  --version-number 1 \
+  --version-number 2 \
   --region ap-northeast-1
 ```
 

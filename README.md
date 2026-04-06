@@ -14,16 +14,27 @@ GitHub (push to main)
         └── CD: ECR Push → ECS Rolling Deploy
 
 インターネット
+  ├── CloudFront (OAC) → S3 (添付ファイル配信)
   └── ALB (HTTP :80)
         └── ECS Fargate (FastAPI)  ← Auto Scaling: 1〜3 タスク
-              └── RDS PostgreSQL (Multi-AZ)
-                    ├── Primary (ap-northeast-1a)
-                    └── Standby (ap-northeast-1c)  ← 自動フェイルオーバー
+              ├── RDS PostgreSQL (Multi-AZ)
+              │     ├── Primary (ap-northeast-1a)
+              │     └── Standby (ap-northeast-1c)  ← 自動フェイルオーバー
+              ├── S3 (Presigned URL でアップロード)
+              ├── SQS (task-events キュー + DLQ)
+              └── EventBridge (カスタムバス + スケジューラ)
+
+Lambda 関数 × 3
+  ├── task_created_handler  ← SQS トリガー
+  ├── task_completed_handler ← EventBridge トリガー
+  └── task_cleanup_handler  ← EventBridge Scheduler (VPC 内、RDS 直接接続)
 ```
 
-- **アプリ**: FastAPI (Python 3.12) によるタスク管理 REST API
-- **インフラ**: Terraform で AWS リソースをコード管理
+- **アプリ**: FastAPI (Python 3.12) によるタスク管理 REST API + ファイル添付機能
+- **インフラ**: Terraform で AWS リソースをコード管理（Workspace でマルチ環境）
 - **CI/CD**: GitHub Actions で push ごとに自動テスト・自動デプロイ
+- **イベント駆動**: SQS + Lambda + EventBridge による非同期処理
+- **ストレージ**: S3 + CloudFront で添付ファイル管理・配信
 - **リージョン**: ap-northeast-1 (東京)
 
 ---
@@ -75,6 +86,38 @@ RDS を追加してデータを永続化。本格的な REST API に拡張。
 
 ---
 
+### v4 — イベント駆動アーキテクチャ（SQS + Lambda + EventBridge）
+
+非同期処理パターンを導入。タスク操作に連動してイベントを発行。
+
+**追加機能**
+- タスク作成時に SQS へイベント発行 → Lambda で非同期処理
+- タスク完了時に EventBridge へイベント発行 → Lambda で非同期処理
+- EventBridge Scheduler による定期クリーンアップ（VPC 内 Lambda → RDS 直接接続）
+- DLQ（デッドレターキュー）による失敗メッセージの退避
+- VPC Endpoints（Secrets Manager, CloudWatch Logs）
+
+**学習テーマ**: SQS, Lambda, EventBridge, DLQ, VPC Endpoints, イベント駆動設計
+
+---
+
+### v5 — ストレージ + マルチ環境（S3 + CloudFront + Terraform Workspace）
+
+タスクへのファイル添付機能を追加。マルチ環境管理を導入。
+
+**追加機能**
+- `POST /tasks/{id}/attachments` — Presigned URL でファイルアップロード
+- `GET /tasks/{id}/attachments` — 添付ファイル一覧
+- `GET /tasks/{id}/attachments/{id}` — CloudFront 経由のダウンロード URL 取得
+- `DELETE /tasks/{id}/attachments/{id}` — 添付ファイル削除（S3 + DB）
+- S3（SSE-S3 暗号化、パブリックアクセスブロック）
+- CloudFront（OAC 経由で S3 配信）
+- Terraform Workspace で dev/prod 環境分離
+
+**学習テーマ**: S3, CloudFront, OAC, Presigned URL, Terraform Workspace, マルチ環境管理
+
+---
+
 ## API エンドポイント
 
 | メソッド | パス | 説明 |
@@ -82,10 +125,14 @@ RDS を追加してデータを永続化。本格的な REST API に拡張。
 | GET | `/` | Hello World |
 | GET | `/health` | ヘルスチェック（ALB が死活監視） |
 | GET | `/tasks` | タスク一覧 |
-| POST | `/tasks` | タスク作成 |
+| POST | `/tasks` | タスク作成（→ SQS イベント発行） |
 | GET | `/tasks/{id}` | タスク取得 |
-| PUT | `/tasks/{id}` | タスク更新 |
+| PUT | `/tasks/{id}` | タスク更新（完了時 → EventBridge イベント発行） |
 | DELETE | `/tasks/{id}` | タスク削除 |
+| POST | `/tasks/{id}/attachments` | 添付ファイル作成（Presigned URL 返却） |
+| GET | `/tasks/{id}/attachments` | 添付ファイル一覧 |
+| GET | `/tasks/{id}/attachments/{att_id}` | 添付ファイル取得（ダウンロード URL 付き） |
+| DELETE | `/tasks/{id}/attachments/{att_id}` | 添付ファイル削除 |
 
 ---
 
@@ -95,39 +142,57 @@ RDS を追加してデータを永続化。本格的な REST API に拡張。
 sample_cicd/
 ├── app/                        # FastAPI アプリケーション
 │   ├── main.py                 # エントリポイント（/, /health）
-│   ├── routers/tasks.py        # タスク CRUD エンドポイント
-│   ├── models.py               # SQLAlchemy ORM モデル
+│   ├── routers/
+│   │   ├── tasks.py            # タスク CRUD エンドポイント
+│   │   └── attachments.py      # 添付ファイル CRUD エンドポイント（v5）
+│   ├── services/
+│   │   ├── events.py           # SQS/EventBridge イベント発行（v4）
+│   │   └── storage.py          # S3 Presigned URL 生成・オブジェクト操作（v5）
+│   ├── models.py               # SQLAlchemy ORM モデル（Task, Attachment）
 │   ├── schemas.py              # Pydantic スキーマ（リクエスト/レスポンス）
 │   ├── database.py             # DB 接続・セッション管理
 │   ├── alembic/                # DB マイグレーション
 │   ├── requirements.txt        # 依存ライブラリ
 │   └── Dockerfile              # マルチステージビルド、非rootユーザー
+├── lambda/                     # Lambda 関数（v4）
+│   ├── task_created_handler.py   # SQS トリガー：タスク作成イベント処理
+│   ├── task_completed_handler.py # EventBridge トリガー：タスク完了イベント処理
+│   └── task_cleanup_handler.py   # Scheduler トリガー：定期クリーンアップ
 ├── infra/                      # Terraform（AWS インフラ定義）
 │   ├── main.tf                 # VPC・サブネット・ルーティング
 │   ├── ecs.tf                  # ECS クラスター・タスク定義・サービス
 │   ├── alb.tf                  # ALB・ターゲットグループ・リスナー
 │   ├── rds.tf                  # RDS PostgreSQL（Multi-AZ）
-│   ├── autoscaling.tf          # Application Auto Scaling（v3追加）
+│   ├── autoscaling.tf          # Application Auto Scaling（v3）
 │   ├── https.tf                # ACM・Route53・HTTPSリスナー（コードのみ）
+│   ├── sqs.tf                  # SQS キュー + DLQ（v4）
+│   ├── lambda.tf               # Lambda 関数定義（v4）
+│   ├── eventbridge.tf          # EventBridge バス + ルール + Scheduler（v4）
+│   ├── vpc_endpoints.tf        # VPC Endpoints（v4）
+│   ├── s3.tf                   # S3 バケット（v5）
+│   ├── cloudfront.tf           # CloudFront ディストリビューション（v5）
 │   ├── ecr.tf                  # ECR リポジトリ
 │   ├── iam.tf                  # IAM ロール・ポリシー
 │   ├── secrets.tf              # Secrets Manager
 │   ├── security_groups.tf      # セキュリティグループ
 │   ├── logs.tf                 # CloudWatch Logs
 │   ├── variables.tf            # 変数定義
-│   └── outputs.tf              # 出力値（ALB DNS 等）
+│   ├── outputs.tf              # 出力値（ALB DNS 等）
+│   ├── dev.tfvars              # dev 環境設定値（v5）
+│   └── prod.tfvars             # prod 環境設定値（v5）
 ├── .github/workflows/
 │   └── ci-cd.yml               # CI/CD パイプライン
 ├── tests/
 │   ├── conftest.py             # テスト用 DB（SQLite インメモリ）
-│   ├── test_main.py            # v1 エンドポイントテスト（6件）
-│   └── test_tasks.py           # v2 CRUD テスト（12件）
+│   ├── test_main.py            # v1 エンドポイントテスト
+│   ├── test_tasks.py           # v2 + v4 タスク CRUD + イベント発行テスト
+│   └── test_attachments.py     # v5 添付ファイルテスト
 └── docs/
-    ├── 01_requirements/        # 要件定義書（v1・v2・v3）
+    ├── 01_requirements/        # 要件定義書（v1〜v5）
     ├── 02_design/              # 設計書（アーキテクチャ・API・DB・インフラ・CI/CD）
-    ├── 04_test/                # テスト計画書（v1・v2・v3）
-    ├── 05_deploy/              # デプロイ手順書・動作確認記録（v1・v2・v3）
-    └── 06_learning/            # 学習まとめ（v2・v3）
+    ├── 04_test/                # テスト計画書（v1〜v5）
+    ├── 05_deploy/              # デプロイ手順書・動作確認記録（v1〜v5）
+    └── 06_learning/            # 学習まとめ（v2〜v5）
 ```
 
 ---
@@ -160,12 +225,12 @@ def get_db():
 
 ### インフラ（infra/）
 
-**Terraform でリソースを分割管理**
+**Terraform でリソースを分割管理（Workspace でマルチ環境）**
 
 ```
 VPC (10.0.0.0/16)
   ├── パブリックサブネット × 2  → ALB, ECS タスク
-  └── プライベートサブネット × 2 → RDS
+  └── プライベートサブネット × 2 → RDS, VPC Endpoints, Lambda (cleanup)
 ```
 
 **Auto Scaling の仕組み（v3）**
@@ -185,6 +250,37 @@ AlarmLow → ALARM
 desired_count: 2 → 1
 ```
 
+**イベント駆動フロー（v4）**
+
+```
+タスク作成 → SQS (task-events) → Lambda (task_created_handler)
+                                     └── 失敗 → DLQ
+
+タスク完了 → EventBridge (カスタムバス) → Lambda (task_completed_handler)
+
+EventBridge Scheduler (毎日) → Lambda (task_cleanup_handler)
+                                  └── VPC 内から RDS に直接接続
+```
+
+**ファイル添付フロー（v5）**
+
+```
+アップロード: クライアント → API (Presigned URL 取得) → S3 に直接 PUT
+ダウンロード: クライアント → CloudFront (OAC) → S3
+```
+
+**マルチ環境管理（v5）**
+
+```bash
+# Terraform Workspace で環境切り替え
+terraform workspace select dev
+terraform plan -var-file=dev.tfvars
+
+terraform workspace select prod
+terraform plan -var-file=prod.tfvars
+# リソース名は自動で sample-cicd-{env}-* に統一
+```
+
 **HTTPS 有効化（将来）**
 
 ```bash
@@ -199,7 +295,7 @@ domain_name  = "example.com"
 push to main
   ├── CI ジョブ（全ブランチ・PR）
   │    ├── ruff check app/ tests/   # Lint
-  │    ├── pytest tests/ -v         # 18 テスト
+  │    ├── pytest tests/ -v         # 46 テスト
   │    └── docker build             # ビルド検証
   │
   └── CD ジョブ（main ブランチのみ、CI 成功後）
@@ -236,11 +332,12 @@ docker run -p 8000:8000 sample-cicd:dev
 ## AWS デプロイ
 
 ```bash
-# インフラ構築
+# インフラ構築（v5: Workspace でマルチ環境）
 cd infra
 terraform init
-terraform plan
-terraform apply
+terraform workspace select dev    # または prod
+terraform plan -var-file=dev.tfvars
+terraform apply -var-file=dev.tfvars
 
 # ECR へ手動プッシュ（初回のみ）
 aws ecr get-login-password --region ap-northeast-1 | \
@@ -280,7 +377,7 @@ cd infra && terraform destroy
 | 5. デプロイ | `docs/05_deploy/` | デプロイ手順書・動作確認記録 |
 | — | `docs/06_learning/` | バージョンごとの学習まとめ |
 
-各バージョンのドキュメントは `_v2`, `_v3` サフィックスで並行管理している。
+各バージョンのドキュメントは `_v2`, `_v3`, `_v4`, `_v5` サフィックスで並行管理している。
 
 ---
 
@@ -302,7 +399,13 @@ cd infra && terraform destroy
 | コンピュート | ECS Fargate (0.25 vCPU / 512 MB) |
 | ロードバランサー | ALB |
 | データベース | RDS PostgreSQL 15 (db.t3.micro, Multi-AZ) |
+| メッセージキュー | SQS (+ DLQ) |
+| サーバーレス | AWS Lambda (Python 3.12) |
+| イベントバス | Amazon EventBridge (カスタムバス + Scheduler) |
+| ストレージ | S3 (SSE-S3 暗号化) |
+| CDN | CloudFront (OAC) |
 | レジストリ | ECR |
 | シークレット管理 | AWS Secrets Manager |
 | スケーリング | Application Auto Scaling |
 | ログ | CloudWatch Logs |
+| 環境管理 | Terraform Workspace (dev / prod) |
