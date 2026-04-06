@@ -32,7 +32,7 @@ v4 の 63 アクティブリソースに以下を追加する:
 
 #### s3.tf（4 リソース）
 
-| # | リソースタイプ | リソース��� | 用途 |
+| # | リソースタイプ | リソース名 | 用途 |
 |---|--------------|-----------|------|
 | 64 | `aws_s3_bucket` | `attachments` | ファイル添付ストレージ |
 | 65 | `aws_s3_bucket_public_access_block` | `attachments` | パブリックアクセス全ブロック |
@@ -61,13 +61,13 @@ infra/
 ├── alb.tf               [変更: リソース名を ${local.prefix} に]
 ├── ecr.tf               [変更: リソース名を ${local.prefix} に]
 ├── ecs.tf               [変更: リソース名 + 環境変数 S3_BUCKET_NAME / CLOUDFRONT_DOMAIN_NAME 追加]
-├���─ iam.tf               [変更: リソース名 + ECS タスクロールに S3 権限追加]
+├── iam.tf               [変更: リソース名 + ECS タスクロールに S3 権限追加]
 ├── security_groups.tf   [変更: リソース名を ${local.prefix} に]
 ├── logs.tf              [変更: リソース名を ${local.prefix} に]
-├─�� rds.tf               [変更: リソース名を ${local.prefix} に]
+├── rds.tf               [変更: リソース名を ${local.prefix} に]
 ├── secrets.tf           [変更: リソース名を ${local.prefix} に]
 ├── autoscaling.tf       [変更なし（リソース名は ARN 参照のため固定）]
-���── https.tf             [変更: リソース名を ${local.prefix} に]
+├── https.tf             [変更: リソース名を ${local.prefix} に]
 ├── sqs.tf               [変更: リソース名を ${local.prefix} に]
 ├── lambda.tf            [変更: リソース名を ${local.prefix} に]
 ├── eventbridge.tf       [変更: リソース名を ${local.prefix} に]
@@ -351,5 +351,5 @@ aws_s3_bucket.attachments
 | State file | `infra/terraform.tfstate.d/{workspace}/terraform.tfstate` |
 | Workspace | `dev`（実デプロイ）、`prod`（tfvars のみ） |
 
-> v4 では `infra/terraform.tfstate` 単体だった��、v5 では Workspace ごとに分離。
+> v4 では `infra/terraform.tfstate` 単体だったが、v5 では Workspace ごとに分離。
 > `.gitignore` に `terraform.tfstate.d/` は既に `*.tfstate` パターンで除外済み。
