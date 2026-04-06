@@ -7,11 +7,11 @@ resource "random_password" "db_password" {
 
 # Secrets Manager Secret
 resource "aws_secretsmanager_secret" "db_credentials" {
-  name        = "${var.project_name}/db-credentials"
-  description = "Database credentials for ${var.project_name}"
+  name        = "${local.prefix}/db-credentials"
+  description = "Database credentials for ${local.prefix}"
 
   tags = {
-    Name = "${var.project_name}-db-credentials"
+    Name = "${local.prefix}-db-credentials"
   }
 }
 

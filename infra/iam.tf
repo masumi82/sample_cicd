@@ -12,11 +12,11 @@ data "aws_iam_policy_document" "ecs_task_assume_role" {
 
 # ECS Task Execution Role (for pulling images and writing logs)
 resource "aws_iam_role" "ecs_task_execution" {
-  name               = "${var.project_name}-ecs-task-execution"
+  name               = "${local.prefix}-ecs-task-execution"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
 
   tags = {
-    Name = "${var.project_name}-ecs-task-execution"
+    Name = "${local.prefix}-ecs-task-execution"
   }
 }
 
@@ -27,17 +27,17 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
 
 # ECS Task Role (for application-level AWS access)
 resource "aws_iam_role" "ecs_task" {
-  name               = "${var.project_name}-ecs-task"
+  name               = "${local.prefix}-ecs-task"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
 
   tags = {
-    Name = "${var.project_name}-ecs-task"
+    Name = "${local.prefix}-ecs-task"
   }
 }
 
 # Secrets Manager read policy for ECS task execution role
 resource "aws_iam_policy" "secrets_manager_read" {
-  name        = "${var.project_name}-secrets-manager-read"
+  name        = "${local.prefix}-secrets-manager-read"
   description = "Allow reading DB credentials from Secrets Manager"
 
   policy = jsonencode({
@@ -52,7 +52,7 @@ resource "aws_iam_policy" "secrets_manager_read" {
   })
 
   tags = {
-    Name = "${var.project_name}-secrets-manager-read"
+    Name = "${local.prefix}-secrets-manager-read"
   }
 }
 
@@ -63,7 +63,7 @@ resource "aws_iam_role_policy_attachment" "ecs_secrets_manager" {
 
 # ECS Task Role policy — SQS / EventBridge への送信権限
 resource "aws_iam_role_policy" "ecs_task_events" {
-  name = "${var.project_name}-ecs-task-events"
+  name = "${local.prefix}-ecs-task-events"
   role = aws_iam_role.ecs_task.id
 
   policy = jsonencode({
@@ -78,6 +78,14 @@ resource "aws_iam_role_policy" "ecs_task_events" {
         Effect   = "Allow"
         Action   = "events:PutEvents"
         Resource = aws_cloudwatch_event_bus.main.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = "${aws_s3_bucket.attachments.arn}/*"
       }
     ]
   })
@@ -87,7 +95,7 @@ resource "aws_iam_role_policy" "ecs_task_events" {
 
 # task_created_handler: SQS 受信 + CloudWatch Logs
 resource "aws_iam_role" "lambda_task_created" {
-  name = "${var.project_name}-lambda-task-created"
+  name = "${local.prefix}-lambda-task-created"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -101,13 +109,13 @@ resource "aws_iam_role" "lambda_task_created" {
   })
 
   tags = {
-    Name    = "${var.project_name}-lambda-task-created"
+    Name    = "${local.prefix}-lambda-task-created"
     Project = var.project_name
   }
 }
 
 resource "aws_iam_role_policy" "lambda_task_created" {
-  name = "${var.project_name}-lambda-task-created-policy"
+  name = "${local.prefix}-lambda-task-created-policy"
   role = aws_iam_role.lambda_task_created.id
 
   policy = jsonencode({
@@ -137,7 +145,7 @@ resource "aws_iam_role_policy" "lambda_task_created" {
 
 # task_completed_handler: CloudWatch Logs のみ
 resource "aws_iam_role" "lambda_task_completed" {
-  name = "${var.project_name}-lambda-task-completed"
+  name = "${local.prefix}-lambda-task-completed"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -151,13 +159,13 @@ resource "aws_iam_role" "lambda_task_completed" {
   })
 
   tags = {
-    Name    = "${var.project_name}-lambda-task-completed"
+    Name    = "${local.prefix}-lambda-task-completed"
     Project = var.project_name
   }
 }
 
 resource "aws_iam_role_policy" "lambda_task_completed" {
-  name = "${var.project_name}-lambda-task-completed-policy"
+  name = "${local.prefix}-lambda-task-completed-policy"
   role = aws_iam_role.lambda_task_completed.id
 
   policy = jsonencode({
@@ -178,7 +186,7 @@ resource "aws_iam_role_policy" "lambda_task_completed" {
 
 # task_cleanup_handler: Secrets Manager + CloudWatch Logs + VPC ENI 操作
 resource "aws_iam_role" "lambda_task_cleanup" {
-  name = "${var.project_name}-lambda-task-cleanup"
+  name = "${local.prefix}-lambda-task-cleanup"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -192,13 +200,13 @@ resource "aws_iam_role" "lambda_task_cleanup" {
   })
 
   tags = {
-    Name    = "${var.project_name}-lambda-task-cleanup"
+    Name    = "${local.prefix}-lambda-task-cleanup"
     Project = var.project_name
   }
 }
 
 resource "aws_iam_role_policy" "lambda_task_cleanup" {
-  name = "${var.project_name}-lambda-task-cleanup-policy"
+  name = "${local.prefix}-lambda-task-cleanup-policy"
   role = aws_iam_role.lambda_task_cleanup.id
 
   policy = jsonencode({

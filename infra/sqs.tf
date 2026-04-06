@@ -1,17 +1,17 @@
 # Dead Letter Queue — リトライ上限到達後のメッセージを退避する
 resource "aws_sqs_queue" "task_events_dlq" {
-  name                      = "${var.project_name}-task-events-dlq"
+  name                      = "${local.prefix}-task-events-dlq"
   message_retention_seconds = 1209600 # 14 days
 
   tags = {
-    Name    = "${var.project_name}-task-events-dlq"
+    Name    = "${local.prefix}-task-events-dlq"
     Project = var.project_name
   }
 }
 
 # Main Queue — タスク作成イベントを受け付ける
 resource "aws_sqs_queue" "task_events" {
-  name = "${var.project_name}-task-events"
+  name = "${local.prefix}-task-events"
 
   # Lambda タイムアウト (30s) の 2 倍に設定（SQS ベストプラクティス）
   visibility_timeout_seconds = 60
@@ -23,7 +23,7 @@ resource "aws_sqs_queue" "task_events" {
   })
 
   tags = {
-    Name    = "${var.project_name}-task-events"
+    Name    = "${local.prefix}-task-events"
     Project = var.project_name
   }
 }

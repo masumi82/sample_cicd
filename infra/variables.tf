@@ -122,3 +122,35 @@ variable "psycopg2_layer_arn" {
   description = "ARN of the Lambda Layer containing psycopg2 for Python 3.12"
   type        = string
 }
+
+# --- v5: Storage + Multi-Environment ---
+
+variable "db_multi_az" {
+  description = "Enable Multi-AZ for RDS"
+  type        = bool
+  default     = false
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch Logs retention in days for ECS app"
+  type        = number
+  default     = 14
+}
+
+variable "cloudfront_price_class" {
+  description = "CloudFront price class (PriceClass_100, PriceClass_200, PriceClass_All)"
+  type        = string
+  default     = "PriceClass_100"
+}
+
+variable "cors_allowed_origins" {
+  description = "Allowed origins for S3 CORS (presigned URL uploads)"
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "s3_versioning_enabled" {
+  description = "Enable S3 bucket versioning"
+  type        = bool
+  default     = false
+}

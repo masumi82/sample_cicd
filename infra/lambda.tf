@@ -21,7 +21,7 @@ data "archive_file" "task_cleanup_handler" {
 # --- task_created_handler (SQS trigger, no VPC) ---
 
 resource "aws_lambda_function" "task_created_handler" {
-  function_name    = "${var.project_name}-task-created-handler"
+  function_name    = "${local.prefix}-task-created-handler"
   role             = aws_iam_role.lambda_task_created.arn
   handler          = "task_created_handler.handler"
   runtime          = "python3.12"
@@ -33,7 +33,7 @@ resource "aws_lambda_function" "task_created_handler" {
   depends_on = [aws_cloudwatch_log_group.lambda_task_created]
 
   tags = {
-    Name    = "${var.project_name}-task-created-handler"
+    Name    = "${local.prefix}-task-created-handler"
     Project = var.project_name
   }
 }
@@ -41,7 +41,7 @@ resource "aws_lambda_function" "task_created_handler" {
 # --- task_completed_handler (EventBridge trigger, no VPC) ---
 
 resource "aws_lambda_function" "task_completed_handler" {
-  function_name    = "${var.project_name}-task-completed-handler"
+  function_name    = "${local.prefix}-task-completed-handler"
   role             = aws_iam_role.lambda_task_completed.arn
   handler          = "task_completed_handler.handler"
   runtime          = "python3.12"
@@ -53,7 +53,7 @@ resource "aws_lambda_function" "task_completed_handler" {
   depends_on = [aws_cloudwatch_log_group.lambda_task_completed]
 
   tags = {
-    Name    = "${var.project_name}-task-completed-handler"
+    Name    = "${local.prefix}-task-completed-handler"
     Project = var.project_name
   }
 }
@@ -61,12 +61,12 @@ resource "aws_lambda_function" "task_completed_handler" {
 # --- task_cleanup_handler (Scheduler trigger, VPC 内) ---
 
 resource "aws_security_group" "lambda_cleanup" {
-  name        = "${var.project_name}-lambda-cleanup-sg"
+  name        = "${local.prefix}-lambda-cleanup-sg"
   description = "Security group for task cleanup Lambda (VPC)"
   vpc_id      = aws_vpc.main.id
 
   tags = {
-    Name    = "${var.project_name}-lambda-cleanup-sg"
+    Name    = "${local.prefix}-lambda-cleanup-sg"
     Project = var.project_name
   }
 }
@@ -103,7 +103,7 @@ resource "aws_security_group_rule" "rds_from_lambda_cleanup" {
 }
 
 resource "aws_lambda_function" "task_cleanup_handler" {
-  function_name    = "${var.project_name}-task-cleanup-handler"
+  function_name    = "${local.prefix}-task-cleanup-handler"
   role             = aws_iam_role.lambda_task_cleanup.arn
   handler          = "task_cleanup_handler.handler"
   runtime          = "python3.12"
@@ -128,7 +128,7 @@ resource "aws_lambda_function" "task_cleanup_handler" {
   depends_on = [aws_cloudwatch_log_group.lambda_task_cleanup]
 
   tags = {
-    Name    = "${var.project_name}-task-cleanup-handler"
+    Name    = "${local.prefix}-task-cleanup-handler"
     Project = var.project_name
   }
 }

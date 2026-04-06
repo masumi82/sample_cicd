@@ -3,10 +3,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+import logging
+import os
+
 from app.database import get_db
-from app.models import Task
+from app.models import Attachment, Task
 from app.schemas import TaskCreate, TaskResponse, TaskUpdate
 from app.services.events import publish_task_completed, publish_task_created
+from app.services.storage import delete_object
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -112,6 +118,13 @@ def delete_task(task_id: int, db: Session = Depends(get_db)) -> None:
     task = db.query(Task).filter(Task.id == task_id).first()
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    # Delete S3 objects for all attachments before deleting the task
+    bucket_name = os.environ.get("S3_BUCKET_NAME")
+    if bucket_name:
+        attachments = db.query(Attachment).filter(Attachment.task_id == task_id).all()
+        for att in attachments:
+            delete_object(bucket=bucket_name, key=att.s3_key)
 
     db.delete(task)
     db.commit()

@@ -1,15 +1,15 @@
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
-  name = var.project_name
+  name = local.prefix
 
   tags = {
-    Name = "${var.project_name}-cluster"
+    Name = "${local.prefix}-cluster"
   }
 }
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "app" {
-  family                   = var.project_name
+  family                   = local.prefix
   cpu                      = var.fargate_cpu
   memory                   = var.fargate_memory
   network_mode             = "awsvpc"
@@ -42,6 +42,14 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "EVENTBRIDGE_BUS_NAME"
           value = aws_cloudwatch_event_bus.main.name
+        },
+        {
+          name  = "S3_BUCKET_NAME"
+          value = aws_s3_bucket.attachments.bucket
+        },
+        {
+          name  = "CLOUDFRONT_DOMAIN_NAME"
+          value = aws_cloudfront_distribution.attachments.domain_name
         }
       ]
 
@@ -80,13 +88,13 @@ resource "aws_ecs_task_definition" "app" {
   ])
 
   tags = {
-    Name = "${var.project_name}-task-def"
+    Name = "${local.prefix}-task-def"
   }
 }
 
 # ECS Service
 resource "aws_ecs_service" "app" {
-  name            = var.project_name
+  name            = local.prefix
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
   desired_count   = var.desired_count
@@ -110,6 +118,6 @@ resource "aws_ecs_service" "app" {
   depends_on = [aws_lb_listener.http]
 
   tags = {
-    Name = "${var.project_name}-service"
+    Name = "${local.prefix}-service"
   }
 }

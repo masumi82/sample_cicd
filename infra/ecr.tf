@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "app" {
-  name                 = var.project_name
+  name                 = local.prefix
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -7,7 +7,7 @@ resource "aws_ecr_repository" "app" {
   }
 
   tags = {
-    Name = "${var.project_name}-ecr"
+    Name = "${local.prefix}-ecr"
   }
 }
 

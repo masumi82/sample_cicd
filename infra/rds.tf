@@ -1,16 +1,16 @@
 # DB Subnet Group
 resource "aws_db_subnet_group" "main" {
-  name       = var.project_name
+  name       = local.prefix
   subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
 
   tags = {
-    Name = "${var.project_name}-db-subnet-group"
+    Name = "${local.prefix}-db-subnet-group"
   }
 }
 
 # RDS PostgreSQL
 resource "aws_db_instance" "main" {
-  identifier     = var.project_name
+  identifier     = local.prefix
   engine         = "postgres"
   engine_version = "15"
   instance_class = var.db_instance_class
@@ -26,7 +26,7 @@ resource "aws_db_instance" "main" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = aws_db_subnet_group.main.name
 
-  multi_az            = true
+  multi_az            = var.db_multi_az
   publicly_accessible = false
 
   skip_final_snapshot    = true
@@ -34,6 +34,6 @@ resource "aws_db_instance" "main" {
   deletion_protection    = false
 
   tags = {
-    Name = "${var.project_name}-rds"
+    Name = "${local.prefix}-rds"
   }
 }

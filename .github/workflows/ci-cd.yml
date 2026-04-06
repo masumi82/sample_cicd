@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r app/requirements.txt
-          pip install ruff pytest httpx "moto[sqs,events]"
+          pip install ruff pytest httpx "moto[sqs,events,s3]"
 
       - name: Lint
         run: ruff check app/ tests/ lambda/
@@ -38,6 +38,8 @@ jobs:
     needs: ci
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      DEPLOY_ENV: dev
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -57,7 +59,7 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: sample-cicd
+          ECR_REPOSITORY: sample-cicd-${{ env.DEPLOY_ENV }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           SHORT_SHA=$(echo $IMAGE_TAG | cut -c1-7)
@@ -69,7 +71,7 @@ jobs:
 
       - name: Download current task definition
         run: |
-          aws ecs describe-task-definition --task-definition sample-cicd \
+          aws ecs describe-task-definition --task-definition sample-cicd-${{ env.DEPLOY_ENV }} \
             --query taskDefinition > task-definition.json
 
       - name: Render Amazon ECS task definition
@@ -84,26 +86,16 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@fc8fc60f3a60ffd500fcb13b209c59d221ac8c8c # v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: sample-cicd
-          cluster: sample-cicd
+          service: sample-cicd-${{ env.DEPLOY_ENV }}
+          cluster: sample-cicd-${{ env.DEPLOY_ENV }}
           wait-for-service-stability: true
 
       - name: Package and deploy Lambda functions
         run: |
-          zip -j lambda/task_created_handler.zip lambda/task_created_handler.py
-          aws lambda update-function-code \
-            --function-name sample-cicd-task-created-handler \
-            --zip-file fileb://lambda/task_created_handler.zip \
-            --region ap-northeast-1
-
-          zip -j lambda/task_completed_handler.zip lambda/task_completed_handler.py
-          aws lambda update-function-code \
-            --function-name sample-cicd-task-completed-handler \
-            --zip-file fileb://lambda/task_completed_handler.zip \
-            --region ap-northeast-1
-
-          zip -j lambda/task_cleanup_handler.zip lambda/task_cleanup_handler.py
-          aws lambda update-function-code \
-            --function-name sample-cicd-task-cleanup-handler \
-            --zip-file fileb://lambda/task_cleanup_handler.zip \
-            --region ap-northeast-1
+          for func in task_created_handler task_completed_handler task_cleanup_handler; do
+            zip -j "lambda/${func}.zip" "lambda/${func}.py"
+            aws lambda update-function-code \
+              --function-name "sample-cicd-${{ env.DEPLOY_ENV }}-${func//_/-}" \
+              --zip-file "fileb://lambda/${func}.zip" \
+              --region ap-northeast-1
+          done

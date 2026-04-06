@@ -12,7 +12,7 @@ resource "aws_appautoscaling_target" "ecs_service" {
 # CPU 使用率が target_value に近づくようにタスク数を自動調整する
 # CloudWatch Alarm はこのポリシーによって自動的に作成される
 resource "aws_appautoscaling_policy" "ecs_cpu" {
-  name               = "${var.project_name}-cpu-target-tracking"
+  name               = "${local.prefix}-cpu-target-tracking"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_service.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service.scalable_dimension

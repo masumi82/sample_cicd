@@ -1,16 +1,16 @@
 # カスタムイベントバス
 resource "aws_cloudwatch_event_bus" "main" {
-  name = "${var.project_name}-bus"
+  name = "${local.prefix}-bus"
 
   tags = {
-    Name    = "${var.project_name}-bus"
+    Name    = "${local.prefix}-bus"
     Project = var.project_name
   }
 }
 
 # TaskCompleted イベントのルール
 resource "aws_cloudwatch_event_rule" "task_completed" {
-  name           = "${var.project_name}-task-completed"
+  name           = "${local.prefix}-task-completed"
   event_bus_name = aws_cloudwatch_event_bus.main.name
 
   event_pattern = jsonencode({
@@ -19,7 +19,7 @@ resource "aws_cloudwatch_event_rule" "task_completed" {
   })
 
   tags = {
-    Name    = "${var.project_name}-task-completed-rule"
+    Name    = "${local.prefix}-task-completed-rule"
     Project = var.project_name
   }
 }
@@ -34,7 +34,7 @@ resource "aws_cloudwatch_event_target" "task_completed_lambda" {
 
 # EventBridge Scheduler 用 IAM ロール
 resource "aws_iam_role" "scheduler_task_cleanup" {
-  name = "${var.project_name}-scheduler-task-cleanup"
+  name = "${local.prefix}-scheduler-task-cleanup"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -48,13 +48,13 @@ resource "aws_iam_role" "scheduler_task_cleanup" {
   })
 
   tags = {
-    Name    = "${var.project_name}-scheduler-task-cleanup"
+    Name    = "${local.prefix}-scheduler-task-cleanup"
     Project = var.project_name
   }
 }
 
 resource "aws_iam_role_policy" "scheduler_task_cleanup" {
-  name = "${var.project_name}-scheduler-invoke-lambda"
+  name = "${local.prefix}-scheduler-invoke-lambda"
   role = aws_iam_role.scheduler_task_cleanup.id
 
   policy = jsonencode({
@@ -71,7 +71,7 @@ resource "aws_iam_role_policy" "scheduler_task_cleanup" {
 
 # 定期クリーンアップスケジュール（毎日 0:00 JST = 15:00 UTC）
 resource "aws_scheduler_schedule" "task_cleanup" {
-  name       = "${var.project_name}-task-cleanup"
+  name       = "${local.prefix}-task-cleanup"
   group_name = "default"
 
   flexible_time_window {

@@ -18,9 +18,16 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project = var.project_name
+      Project     = var.project_name
+      Environment = local.env
     }
   }
+}
+
+# Workspace-based naming
+locals {
+  env    = terraform.workspace
+  prefix = "${var.project_name}-${local.env}"
 }
 
 # VPC
@@ -30,7 +37,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "${var.project_name}-vpc"
+    Name = "${local.prefix}-vpc"
   }
 }
 
@@ -42,7 +49,7 @@ resource "aws_subnet" "public_1" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${var.project_name}-public-1"
+    Name = "${local.prefix}-public-1"
   }
 }
 
@@ -54,7 +61,7 @@ resource "aws_subnet" "public_2" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${var.project_name}-public-2"
+    Name = "${local.prefix}-public-2"
   }
 }
 
@@ -63,7 +70,7 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.project_name}-igw"
+    Name = "${local.prefix}-igw"
   }
 }
 
@@ -77,7 +84,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "${var.project_name}-public-rt"
+    Name = "${local.prefix}-public-rt"
   }
 }
 
@@ -100,7 +107,7 @@ resource "aws_subnet" "private_1" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "${var.project_name}-private-1"
+    Name = "${local.prefix}-private-1"
   }
 }
 
@@ -112,7 +119,7 @@ resource "aws_subnet" "private_2" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "${var.project_name}-private-2"
+    Name = "${local.prefix}-private-2"
   }
 }
 
@@ -121,7 +128,7 @@ resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.project_name}-private-rt"
+    Name = "${local.prefix}-private-rt"
   }
 }
 

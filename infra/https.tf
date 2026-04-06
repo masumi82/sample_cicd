@@ -16,7 +16,7 @@ resource "aws_acm_certificate" "app" {
   }
 
   tags = {
-    Name = "${var.project_name}-cert"
+    Name = "${local.prefix}-cert"
   }
 }
 
@@ -26,7 +26,7 @@ resource "aws_route53_zone" "app" {
   name  = var.domain_name
 
   tags = {
-    Name = "${var.project_name}-zone"
+    Name = "${local.prefix}-zone"
   }
 }
 
@@ -84,6 +84,6 @@ resource "aws_lb_listener" "https" {
   }
 
   tags = {
-    Name = "${var.project_name}-https-listener"
+    Name = "${local.prefix}-https-listener"
   }
 }

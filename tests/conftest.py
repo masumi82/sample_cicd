@@ -40,3 +40,14 @@ def setup_database():
 def client():
     """Provide a TestClient instance."""
     return TestClient(app)
+
+
+@pytest.fixture
+def aws_credentials(monkeypatch):
+    """Fake AWS credentials required by moto."""
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "ap-northeast-1")
+    monkeypatch.setenv("AWS_REGION", "ap-northeast-1")

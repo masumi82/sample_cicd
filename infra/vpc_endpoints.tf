@@ -1,11 +1,11 @@
 # VPC Endpoint 用セキュリティグループ
 resource "aws_security_group" "vpc_endpoint" {
-  name        = "${var.project_name}-vpce-sg"
+  name        = "${local.prefix}-vpce-sg"
   description = "Security group for VPC Endpoints used by Lambda cleanup"
   vpc_id      = aws_vpc.main.id
 
   tags = {
-    Name    = "${var.project_name}-vpce-sg"
+    Name    = "${local.prefix}-vpce-sg"
     Project = var.project_name
   }
 }
@@ -53,7 +53,7 @@ resource "aws_vpc_endpoint" "secretsmanager" {
   private_dns_enabled = true
 
   tags = {
-    Name    = "${var.project_name}-secretsmanager-endpoint"
+    Name    = "${local.prefix}-secretsmanager-endpoint"
     Project = var.project_name
   }
 }
@@ -69,7 +69,7 @@ resource "aws_vpc_endpoint" "logs" {
   private_dns_enabled = true
 
   tags = {
-    Name    = "${var.project_name}-logs-endpoint"
+    Name    = "${local.prefix}-logs-endpoint"
     Project = var.project_name
   }
 }

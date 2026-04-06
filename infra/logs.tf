@@ -1,39 +1,39 @@
 resource "aws_cloudwatch_log_group" "app" {
-  name              = "/ecs/${var.project_name}"
-  retention_in_days = 14
+  name              = "/ecs/${local.prefix}"
+  retention_in_days = var.log_retention_days
 
   tags = {
-    Name    = "${var.project_name}-logs"
+    Name    = "${local.prefix}-logs"
     Project = var.project_name
   }
 }
 
 resource "aws_cloudwatch_log_group" "lambda_task_created" {
-  name              = "/aws/lambda/${var.project_name}-task-created-handler"
+  name              = "/aws/lambda/${local.prefix}-task-created-handler"
   retention_in_days = var.lambda_log_retention_days
 
   tags = {
-    Name    = "${var.project_name}-lambda-task-created-logs"
+    Name    = "${local.prefix}-lambda-task-created-logs"
     Project = var.project_name
   }
 }
 
 resource "aws_cloudwatch_log_group" "lambda_task_completed" {
-  name              = "/aws/lambda/${var.project_name}-task-completed-handler"
+  name              = "/aws/lambda/${local.prefix}-task-completed-handler"
   retention_in_days = var.lambda_log_retention_days
 
   tags = {
-    Name    = "${var.project_name}-lambda-task-completed-logs"
+    Name    = "${local.prefix}-lambda-task-completed-logs"
     Project = var.project_name
   }
 }
 
 resource "aws_cloudwatch_log_group" "lambda_task_cleanup" {
-  name              = "/aws/lambda/${var.project_name}-task-cleanup-handler"
+  name              = "/aws/lambda/${local.prefix}-task-cleanup-handler"
   retention_in_days = var.lambda_log_retention_days
 
   tags = {
-    Name    = "${var.project_name}-lambda-task-cleanup-logs"
+    Name    = "${local.prefix}-lambda-task-cleanup-logs"
     Project = var.project_name
   }
 }

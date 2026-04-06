@@ -6,6 +6,7 @@ from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
 
+from app.routers.attachments import router as attachments_router
 from app.routers.tasks import router as tasks_router
 
 
@@ -32,6 +33,11 @@ async def lifespan(application: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
+app.include_router(
+    attachments_router,
+    prefix="/tasks/{task_id}/attachments",
+    tags=["attachments"],
+)
 
 
 @app.get("/")

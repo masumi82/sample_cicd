@@ -15,20 +15,22 @@ v1 に RDS PostgreSQL を追加し、タスク管理 CRUD API を実装する。
 新規学習テーマ: RDS, プライベートサブネット, Secrets Manager, SQLAlchemy, Alembic。
 ドキュメントは `_v2` サフィックスで v1 と並行管理する。
 
-### v3 (進行中): ECS Auto Scaling + HTTPS準備
+### v3 (完了): ECS Auto Scaling + HTTPS準備
 ECS Service Auto Scaling を実装し、負荷に応じたタスク数の自動調整を学習する。
 新規学習テーマ: Application Auto Scaling, Target Tracking Policy, CloudWatch Alarms。
 HTTPS 化 (ACM + Route53) は Terraform コードのみ作成（デプロイなし）。
 ドキュメントは `_v3` サフィックスで管理する。
 
-### v4 (進行中): イベント駆動アーキテクチャ
+### v4 (完了): イベント駆動アーキテクチャ
 SQS + Lambda + EventBridge を使った非同期処理パターンを学習する。
 新規学習テーマ: SQS, Lambda, EventBridge, イベント駆動設計。
 既存タスク管理APIにイベント発行を追加し、Lambda で非同期処理する。
 
-### v5 (予定): ストレージ + マルチ環境
-S3 + CloudFront + Terraform Workspace を使ったストレージとマルチ環境管理を学習する。
-新規学習テーマ: S3, CloudFront, Presigned URL, Terraform Workspace。
+### v5 (進行中): ストレージ + マルチ環境
+S3 + CloudFront + Presigned URL + Terraform Workspace を使ったストレージとマルチ環境管理を学習する。
+新規学習テーマ: S3, CloudFront, Presigned URL, OAC, Terraform Workspace。
+タスク管理APIにファイル添付機能を追加し、Presigned URL でアップロード、CloudFront 経由でダウンロード。
+Terraform Workspace で dev/prod のマルチ環境を管理する。ドキュメントは `_v5` サフィックスで管理する。
 
 ## Common Commands
 
@@ -57,8 +59,9 @@ docker run -p 8000:8000 sample-cicd:test
 ```bash
 cd infra
 terraform init
-terraform plan
-terraform apply
+terraform workspace select dev    # v5: Workspace 切り替え
+terraform plan -var-file=dev.tfvars
+terraform apply -var-file=dev.tfvars
 ```
 
 ## Architecture
@@ -72,8 +75,8 @@ GitHub (push to main)
 
 - **app/**: FastAPI app。`main.py` + `routers/tasks.py` (Task CRUD) + `models.py` + `schemas.py` + `database.py`。起動時に Alembic マイグレーションを自動実行 (`lifespan` ハンドラ)。DB接続は `DATABASE_URL` 環境変数があればそれを使用し、なければ `DB_*` 変数から構築。
 - **tests/**: `conftest.py` が SQLite in-memory DB で `get_db` 依存を上書き。各テストで `Base.metadata.create_all/drop_all` を実行（`autouse=True` fixture）。
-- **infra/**: Terraform split by resource type。`autoscaling.tf` (v3: ECS CPU Target Tracking)、`https.tf` (v3: `enable_https = false` でデフォルト無効)、`outputs.tf` が v3 で追加。`terraform.tfvars` に設定値。
-- **CI/CD**: GitHub Actions pipeline with `ci` (lint/test/build) and `cd` (ECR push + ECS rolling deploy) jobs. Actions pinned by SHA. CD uses short SHA as image tag + `latest`.
+- **infra/**: Terraform split by resource type。`autoscaling.tf` (v3: ECS CPU Target Tracking)、`https.tf` (v3: `enable_https = false` でデフォルト無効)、`s3.tf` + `cloudfront.tf` (v5: 添付ファイルストレージ)。Terraform Workspace で環境分離（`locals { prefix = "${var.project_name}-${local.env}" }`）。設定値は `dev.tfvars` / `prod.tfvars` で環境別管理。
+- **CI/CD**: GitHub Actions pipeline with `ci` (lint/test/build) and `cd` (ECR push + ECS rolling deploy) jobs. Actions pinned by SHA. CD uses short SHA as image tag + `latest`. `DEPLOY_ENV` 環境変数でリソース名に環境名を付与。
 
 ### AWS (ap-northeast-1)
 
@@ -82,6 +85,10 @@ GitHub (push to main)
 **v2 (追加)**: ALB → ECS Fargate → RDS PostgreSQL (private subnets) + Secrets Manager for DB credentials. Terraform adds `rds.tf`, `secrets.tf`, private subnets in `main.tf`.
 
 **v3 (追加)**: ECS Auto Scaling (CPU 70% target tracking, min=1/max=3, scale-out cooldown 60s)。HTTPS は `enable_https = false` でコードのみ存在、デプロイ未実施。
+
+**v4 (追加)**: SQS (task-events + DLQ) + Lambda 3関数 (task_created_handler, task_completed_handler, task_cleanup_handler) + EventBridge (custom bus + scheduler) + VPC Endpoints (secretsmanager, logs)。task_cleanup_handler は VPC 内 Lambda で RDS に直接接続。
+
+**v5 (追加)**: S3 (`sample-cicd-dev-attachments`, SSE-S3 暗号化, パブリックアクセスブロック) + CloudFront (OAC 経由で S3 配信) + Presigned URL (PUT) でファイルアップロード。Terraform Workspace で全リソース名を `sample-cicd-{env}-*` に統一。`app/routers/attachments.py` + `app/services/storage.py` + `app/models.py` (Attachment モデル) 追加。
 
 > **注意**: `infra/terraform.tfstate` がリポジトリにコミットされている。本番運用では remote state (S3 backend) への移行を推奨。
 

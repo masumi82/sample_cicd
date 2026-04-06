@@ -5,7 +5,6 @@ import os
 from unittest.mock import MagicMock, patch
 
 import boto3
-import pytest
 from fastapi.testclient import TestClient
 from moto import mock_aws
 
@@ -124,17 +123,6 @@ def test_delete_task_not_found(client: TestClient):
 # ---------------------------------------------------------------------------
 # v4: SQS / EventBridge event publishing tests (TC-19 to TC-23)
 # ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-def aws_credentials(monkeypatch):
-    """Fake AWS credentials required by moto."""
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
-    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
-    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
-    monkeypatch.setenv("AWS_DEFAULT_REGION", "ap-northeast-1")
-    monkeypatch.setenv("AWS_REGION", "ap-northeast-1")
 
 
 @mock_aws
