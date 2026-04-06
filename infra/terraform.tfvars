@@ -11,3 +11,6 @@ db_instance_class    = "db.t3.micro"
 db_allocated_storage = 20
 db_name              = "sample_cicd"
 db_port              = 5432
+
+# v4: Lambda Layer
+psycopg2_layer_arn = "arn:aws:lambda:ap-northeast-1:123456789012:layer:sample-cicd-psycopg2:1"

@@ -123,12 +123,12 @@ aws logs tail /aws/lambda/sample-cicd-task-cleanup-handler --since 1m --region a
 
 | # | 確認項目 | 確認方法 | 期待結果 | 結果 | 備考 |
 |---|---------|---------|---------|------|------|
-| 22 | CI — Lint | GitHub Actions ログ | `ruff check app/ tests/ lambda/` エラー 0 件 | | |
-| 23 | CI — Test | GitHub Actions ログ | 23 tests passed | | |
-| 24 | CI — Build | GitHub Actions ログ | `docker build` 成功 | | |
-| 25 | CD — ECR Push | GitHub Actions ログ | イメージ push 成功 | | |
-| 26 | CD — ECS Deploy | GitHub Actions ログ | デプロイ完了（service stable） | | |
-| 27 | CD — Lambda Deploy | GitHub Actions ログ | 3 関数の `update-function-code` が成功 | | |
+| 22 | CI — Lint | GitHub Actions ログ | `ruff check app/ tests/ lambda/` エラー 0 件 | PASS | エラー 0 件 |
+| 23 | CI — Test | GitHub Actions ログ | 23 tests passed | PASS | TC-01〜TC-23 全件 PASS |
+| 24 | CI — Build | GitHub Actions ログ | `docker build` 成功 | PASS | ビルド成功 |
+| 25 | CD — ECR Push | GitHub Actions ログ | イメージ push 成功 | PASS | push 成功 |
+| 26 | CD — ECS Deploy | GitHub Actions ログ | デプロイ完了（service stable） | PASS | 5m16s で完了 |
+| 27 | CD — Lambda Deploy | GitHub Actions ログ | 3 関数の `update-function-code` が成功 | PASS | `lambda:UpdateFunctionCode` 権限追加後に成功 |
 
 ## 12. 確認結果サマリ
 
@@ -142,18 +142,18 @@ aws logs tail /aws/lambda/sample-cicd-task-cleanup-handler --since 1m --region a
 | SQS イベント動作 (#15-16) | 2 | 2 | 0 | 100% |
 | EventBridge イベント動作 (#17-18) | 2 | 2 | 0 | 100% |
 | Scheduler クリーンアップ (#19-21) | 3 | 3 | 0 | 100% |
-| CI/CD (#22-27) | 6 | — | — | git push 後に確認 |
-| **合計（CI/CD 除く）** | **21** | **21** | **0** | **100%** |
+| CI/CD (#22-27) | 6 | 6 | 0 | 100% |
+| **合計** | **27** | **27** | **0** | **100%** |
 
 ## 13. 判定
 
-- ☑ **合格** — 21 項目（AWS 動作確認）全件 PASS。CI/CD は git push 後に確認予定
+- ☑ **合格** — 全 27 項目が PASS
 - ☐ **条件付き合格**
 - ☐ **不合格**
 
 ### 判定者コメント
 
-AWS 動作確認 21 項目全 PASS。SQS → Lambda（task_created）、EventBridge → Lambda（task_completed）、Scheduler → VPC内Lambda（task_cleanup + RDS接続）の 3 イベントフローすべて正常動作を確認。CI/CD パイプライン確認（#22-27）は git push 後に実施する。
+全 27 項目 PASS。SQS → Lambda（task_created）、EventBridge → Lambda（task_completed）、Scheduler → VPC内Lambda（task_cleanup + RDS接続）の 3 イベントフローすべて正常動作を確認。CI/CD パイプラインも 23 テスト PASS・Lambda 3 関数デプロイ・ECS ローリングデプロイすべて成功（ci: 49s / cd: 5m16s）。
 
 ### 検出された問題と対応
 
