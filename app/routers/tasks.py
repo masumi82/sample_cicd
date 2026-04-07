@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 import logging
 import os
 
+from app.auth import get_current_user
 from app.database import get_db
 from app.models import Attachment, Task
 from app.schemas import TaskCreate, TaskResponse, TaskUpdate
@@ -18,7 +19,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[TaskResponse])
-def list_tasks(db: Session = Depends(get_db)) -> list[Task]:
+def list_tasks(db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)) -> list[Task]:
     """Return all tasks.
 
     Args:
@@ -31,7 +32,7 @@ def list_tasks(db: Session = Depends(get_db)) -> list[Task]:
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(task_in: TaskCreate, db: Session = Depends(get_db)) -> Task:
+def create_task(task_in: TaskCreate, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)) -> Task:
     """Create a new task.
 
     Args:
@@ -50,7 +51,7 @@ def create_task(task_in: TaskCreate, db: Session = Depends(get_db)) -> Task:
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_task(task_id: int, db: Session = Depends(get_db)) -> Task:
+def get_task(task_id: int, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)) -> Task:
     """Get a single task by ID.
 
     Args:
@@ -71,7 +72,7 @@ def get_task(task_id: int, db: Session = Depends(get_db)) -> Task:
 
 @router.put("/{task_id}", response_model=TaskResponse)
 def update_task(
-    task_id: int, task_in: TaskUpdate, db: Session = Depends(get_db)
+    task_id: int, task_in: TaskUpdate, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user),
 ) -> Task:
     """Update an existing task (partial update).
 
@@ -105,7 +106,7 @@ def update_task(
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(task_id: int, db: Session = Depends(get_db)) -> None:
+def delete_task(task_id: int, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)) -> None:
     """Delete a task by ID.
 
     Args:

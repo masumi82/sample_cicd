@@ -117,12 +117,25 @@ jobs:
       - name: Build frontend
         run: cd frontend && npm ci && npm run build
 
-      - name: Configure API URL
+      - name: Configure App
         run: |
           WEBUI_CF_DOMAIN=$(aws cloudfront list-distributions \
             --query "DistributionList.Items[?Comment=='sample-cicd-${{ env.DEPLOY_ENV }} webui CDN'].DomainName" \
             --output text)
-          echo "window.APP_CONFIG = { API_URL: 'https://${WEBUI_CF_DOMAIN}' };" > frontend/dist/config.js
+          COGNITO_POOL_ID=$(aws cognito-idp list-user-pools --max-results 10 \
+            --query "UserPools[?Name=='sample-cicd-${{ env.DEPLOY_ENV }}-users'].Id" \
+            --output text)
+          COGNITO_CLIENT_ID=$(aws cognito-idp list-user-pool-clients \
+            --user-pool-id ${COGNITO_POOL_ID} \
+            --query "UserPoolClients[?ClientName=='sample-cicd-${{ env.DEPLOY_ENV }}-spa'].ClientId" \
+            --output text)
+          cat > frontend/dist/config.js << EOFCFG
+          window.APP_CONFIG = {
+            API_URL: 'https://${WEBUI_CF_DOMAIN}',
+            COGNITO_USER_POOL_ID: '${COGNITO_POOL_ID}',
+            COGNITO_APP_CLIENT_ID: '${COGNITO_CLIENT_ID}'
+          };
+          EOFCFG
 
       - name: Deploy frontend to S3
         run: |

@@ -40,3 +40,9 @@ alarm_rds_free_storage_threshold = 5000000000 # 5 GB
 alarm_rds_connections_threshold  = 100
 alarm_lambda_errors_threshold    = 3
 alarm_lambda_duration_threshold  = 5000 # 5 seconds
+
+# v7: WAF + Auth
+waf_rate_limit       = 1000
+enable_custom_domain = false
+custom_domain_name   = ""
+hosted_zone_id       = ""

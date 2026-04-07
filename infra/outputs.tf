@@ -94,3 +94,20 @@ output "webui_cloudfront_distribution_id" {
   description = "ID of the Web UI CloudFront distribution"
   value       = aws_cloudfront_distribution.webui.id
 }
+
+# --- v7: Cognito + WAF outputs ---
+
+output "cognito_user_pool_id" {
+  description = "ID of the Cognito User Pool"
+  value       = aws_cognito_user_pool.main.id
+}
+
+output "cognito_app_client_id" {
+  description = "ID of the Cognito App Client"
+  value       = aws_cognito_user_pool_client.spa.id
+}
+
+output "waf_web_acl_arn" {
+  description = "ARN of the WAF WebACL"
+  value       = aws_wafv2_web_acl.cloudfront.arn
+}

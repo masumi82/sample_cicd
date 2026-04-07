@@ -1,3 +1,5 @@
+import { getIdToken, signOut } from "../auth/cognito";
+
 const getApiUrl = () => {
   if (window.APP_CONFIG && window.APP_CONFIG.API_URL) {
     return window.APP_CONFIG.API_URL;
@@ -9,10 +11,23 @@ const API_URL = getApiUrl();
 
 async function request(path, options = {}) {
   const url = `${API_URL}${path}`;
+
+  // Attach JWT token if available
+  const token = await getIdToken();
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
   const response = await fetch(url, {
-    headers: { "Content-Type": "application/json", ...options.headers },
+    headers: { "Content-Type": "application/json", ...authHeaders, ...options.headers },
     ...options,
   });
+
+  // Handle 401: sign out and redirect to login
+  if (response.status === 401) {
+    signOut();
+    window.location.href = "/login";
+    throw new Error("Session expired. Please log in again.");
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || `Request failed: ${response.status}`);

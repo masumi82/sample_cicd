@@ -56,6 +56,7 @@ resource "aws_cloudfront_distribution" "webui" {
   default_root_object = "index.html"
   price_class         = var.cloudfront_price_class
   comment             = "${local.prefix} webui CDN"
+  web_acl_id          = aws_wafv2_web_acl.cloudfront.arn
 
   # Origin 1: S3 (static assets)
   origin {

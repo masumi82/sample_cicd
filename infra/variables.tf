@@ -216,3 +216,31 @@ variable "alarm_lambda_duration_threshold" {
   type        = number
   default     = 10000
 }
+
+# --- v7: WAF ---
+
+variable "waf_rate_limit" {
+  description = "WAF rate limit per IP (requests per 5 minutes)"
+  type        = number
+  default     = 2000
+}
+
+# --- v7: HTTPS + Custom Domain (optional) ---
+
+variable "enable_custom_domain" {
+  description = "Enable custom domain with ACM + Route53"
+  type        = bool
+  default     = false
+}
+
+variable "custom_domain_name" {
+  description = "Custom domain name (e.g., app.example.com). Required when enable_custom_domain = true."
+  type        = string
+  default     = ""
+}
+
+variable "hosted_zone_id" {
+  description = "Route53 Hosted Zone ID. Required when enable_custom_domain = true."
+  type        = string
+  default     = ""
+}

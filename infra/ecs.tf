@@ -58,6 +58,14 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "CORS_ALLOWED_ORIGINS"
           value = "https://${aws_cloudfront_distribution.webui.domain_name}"
+        },
+        {
+          name  = "COGNITO_USER_POOL_ID"
+          value = aws_cognito_user_pool.main.id
+        },
+        {
+          name  = "COGNITO_APP_CLIENT_ID"
+          value = aws_cognito_user_pool_client.spa.id
         }
       ]
 

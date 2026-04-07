@@ -7,6 +7,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.database import get_db
 from app.models import Attachment, Task
 from app.schemas import (
@@ -39,6 +40,7 @@ def create_attachment(
     task_id: int,
     attachment: AttachmentCreate,
     db: Session = Depends(get_db),
+    _user: dict | None = Depends(get_current_user),
 ):
     """Request a presigned upload URL for a file attachment."""
     _get_task_or_404(task_id, db)
@@ -80,14 +82,14 @@ def create_attachment(
 
 
 @router.get("", response_model=list[AttachmentResponse])
-def list_attachments(task_id: int, db: Session = Depends(get_db)):
+def list_attachments(task_id: int, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)):
     """List all attachments for a task."""
     _get_task_or_404(task_id, db)
     return db.query(Attachment).filter(Attachment.task_id == task_id).all()
 
 
 @router.get("/{attachment_id}", response_model=AttachmentDownloadResponse)
-def get_attachment(task_id: int, attachment_id: int, db: Session = Depends(get_db)):
+def get_attachment(task_id: int, attachment_id: int, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)):
     """Get attachment metadata with a CloudFront download URL."""
     _get_task_or_404(task_id, db)
 
@@ -116,7 +118,7 @@ def get_attachment(task_id: int, attachment_id: int, db: Session = Depends(get_d
 
 
 @router.delete("/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_attachment(task_id: int, attachment_id: int, db: Session = Depends(get_db)):
+def delete_attachment(task_id: int, attachment_id: int, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)):
     """Delete an attachment from S3 and database."""
     _get_task_or_404(task_id, db)
 
