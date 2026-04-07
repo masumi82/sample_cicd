@@ -16,48 +16,27 @@ v1 のアーキテクチャに以下を追加する:
 
 ## 1. システム構成図
 
-```
-                         ┌──────────────────────────────────────────────────────┐
-                         │                    AWS Cloud                         │
-                         │                ap-northeast-1                        │
-                         │                                                      │
-  ┌──────────┐           │  ┌──────────────────────────────────────────────┐    │
-  │  User     │──HTTP──▶│  │            VPC (10.0.0.0/16)                  │    │
-  │ (Browser) │          │  │                                              │    │
-  └──────────┘           │  │  ┌────────────────────────────────────────┐  │    │
-                         │  │  │  Public Subnets (AZ-a / AZ-c)          │  │    │
-                         │  │  │                                        │  │    │
-                         │  │  │  ┌─────┐     ┌──────────────────────┐  │  │    │
-                         │  │  │  │ ALB │────▶│    ECS Fargate       │  │  │    │
-                         │  │  │  │ :80 │     │  (FastAPI + Tasks)   │  │  │    │
-                         │  │  │  └─────┘     └──────────┬───────────┘  │  │    │
-                         │  │  └──────────────────────────┼─────────────┘  │    │
-                         │  │                              │ :5432          │    │
-                         │  │  ┌──────────────────────────┼─────────────┐  │    │
-                         │  │  │  Private Subnets (AZ-a / AZ-c)         │  │    │
-                         │  │  │                              │          │  │    │
-                         │  │  │              ┌───────────────▼───────┐  │  │    │
-                         │  │  │              │   RDS PostgreSQL      │  │  │    │
-                         │  │  │              │   (db.t3.micro)       │  │  │    │
-                         │  │  │              └──────────────────────┘  │  │    │
-                         │  │  └────────────────────────────────────────┘  │    │
-                         │  └──────────────────────────────────────────────┘    │
-                         │                                                      │
-                         │  ┌─────────────────┐   ┌───────────────┐            │
-                         │  │ Secrets Manager  │   │  CloudWatch   │            │
-                         │  │ (DB credentials) │   │    Logs       │            │
-                         │  └─────────────────┘   └───────────────┘            │
-                         │                                                      │
-                         │  ┌───────────────┐                                   │
-                         │  │     ECR       │                                   │
-                         │  │ (Image Repo)  │                                   │
-                         │  └───────▲───────┘                                   │
-                         └──────────┼───────────────────────────────────────────┘
-                                    │
-  ┌──────────┐   ┌──────────────┐   │
-  │  GitHub   │──▶│GitHub Actions│───┘
-  │  (push)   │   │  CI/CD       │
-  └──────────┘   └──────────────┘
+```mermaid
+graph TB
+    User["User (Browser)"] -->|HTTP| ALB
+
+    subgraph AWS["AWS Cloud (ap-northeast-1)"]
+        subgraph VPC["VPC (10.0.0.0/16)"]
+            subgraph Public["Public Subnets (AZ-a / AZ-c)"]
+                ALB["ALB :80"] --> ECS["ECS Fargate (FastAPI + Tasks)"]
+            end
+            subgraph Private["Private Subnets (AZ-a / AZ-c)"]
+                RDS["RDS PostgreSQL (db.t3.micro)"]
+            end
+            ECS -->|:5432| RDS
+        end
+        SM["Secrets Manager (DB credentials)"]
+        CWLogs["CloudWatch Logs"]
+        ECR["ECR (Image Repo)"]
+    end
+
+    GitHub["GitHub (push)"] --> GHA["GitHub Actions CI/CD"]
+    GHA --> ECR
 ```
 
 ## 2. コンポーネント一覧

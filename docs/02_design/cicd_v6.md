@@ -16,55 +16,31 @@ v6 ではフロントエンド（React SPA）のビルド・デプロイと X-Ra
 
 ## 1. パイプライン全体像（v6）
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                       GitHub Actions Workflow                        │
-│                                                                     │
-│  Trigger: push to main / Pull Request（変更なし）                    │
-│                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                     CI Job（フロントエンド追加）                │  │
-│  │                                                               │  │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │  │
-│  │  │ Checkout │─▶│  Lint    │─▶│  Test    │─▶│ Docker Build│  │  │
-│  │  │          │  │  (ruff)  │  │ (pytest) │  │             │  │  │
-│  │  └──────────┘  └──────────┘  └──────────┘  └─────────────┘  │  │
-│  │               app/ + tests/ + lambda/                         │  │
-│  │                                                               │  │
-│  │  ┌──────────────────┐  ┌──────────────────────────────────┐  │  │
-│  │  │ Setup Node.js 20 │─▶│ npm ci + npm run build (frontend)│  │  │
-│  │  └──────────────────┘  └──────────────────────────────────┘  │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│                              │                                      │
-│                              │ (main branch only)                   │
-│                              ▼                                      │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │               CD Job（フロントエンドデプロイ追加）              │  │
-│  │                                                               │  │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │  │
-│  │  │ AWS Auth │─▶│ECR Login │─▶│ECR Push  │─▶│  ECS Deploy │  │  │
-│  │  │          │  │          │  │(Docker)  │  │  (dev env)  │  │  │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────┬──────┘  │  │
-│  │                                                     │         │  │
-│  │                                                     ▼         │  │
-│  │                                           ┌─────────────────┐ │  │
-│  │                                           │ Lambda Deploy   │ │  │
-│  │                                           │ (3 functions)   │ │  │
-│  │                                           │ (dev env)       │ │  │
-│  │                                           └────────┬────────┘ │  │
-│  │                                                     │         │  │
-│  │                                                     ▼         │  │
-│  │  ┌──────────────────┐  ┌──────────────────────────────────┐  │  │
-│  │  │ Setup Node.js 20 │─▶│ npm ci + npm run build (frontend)│  │  │
-│  │  └──────────────────┘  └───────────────┬──────────────────┘  │  │
-│  │                                         │                     │  │
-│  │                                         ▼                     │  │
-│  │  ┌─────────────────┐  ┌──────────────┐  ┌─────────────────┐ │  │
-│  │  │ API URL 注入    │─▶│  S3 sync     │─▶│ CloudFront      │ │  │
-│  │  │ (config.js)     │  │  (webui)     │  │ Invalidation    │ │  │
-│  │  └─────────────────┘  └──────────────┘  └─────────────────┘ │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph GHA["GitHub Actions Workflow<br>Trigger: push to main / Pull Request（変更なし）"]
+        subgraph CI["CI Job（フロントエンド追加）<br>対象: app/ + tests/ + lambda/"]
+            A[Checkout] --> B["Lint<br>(ruff)"]
+            B --> C["Test<br>(pytest)"]
+            C --> D[Docker Build]
+            D --> E[Setup Node.js 20]
+            E --> F["npm ci + npm run build<br>(frontend)"]
+        end
+
+        F -->|main branch only| G
+
+        subgraph CD["CD Job（フロントエンドデプロイ追加）"]
+            G[AWS Auth] --> H[ECR Login]
+            H --> I["ECR Push<br>(Docker)"]
+            I --> J["ECS Deploy<br>(dev env)"]
+            J --> K["Lambda Deploy<br>(3 functions)<br>(dev env)"]
+            K --> L[Setup Node.js 20]
+            L --> M["npm ci + npm run build<br>(frontend)"]
+            M --> N["API URL 注入<br>(config.js)"]
+            N --> O["S3 sync<br>(webui)"]
+            O --> P[CloudFront Invalidation]
+        end
+    end
 ```
 
 ## 2. 変更箇所一覧

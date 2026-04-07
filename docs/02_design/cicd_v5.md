@@ -17,40 +17,24 @@ CI/CD パイプラインを Workspace 対応に変更し、デプロイ先の環
 
 ## 1. パイプライン全体像（v5）
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                       GitHub Actions Workflow                        │
-│                                                                     │
-│  Trigger: push to main / Pull Request（変更なし）                    │
-│                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                          CI Job（変更なし）                    │  │
-│  │                                                               │  │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │  │
-│  │  │ Checkout │─▶│  Lint    │─▶│  Test    │─▶│ Docker Build│  │  │
-│  │  │          │  │  (ruff)  │  │ (pytest) │  │             │  │  │
-│  │  └──────────┘  └──────────┘  └──────────┘  └─────────────┘  │  │
-│  │               app/ + tests/ + lambda/                         │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│                              │                                      │
-│                              │ (main branch only)                   │
-│                              ▼                                      │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                    CD Job（Workspace 対応）                    │  │
-│  │                                                               │  │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │  │
-│  │  │ AWS Auth │─▶│ECR Login │─▶│ECR Push  │─▶│  ECS Deploy │  │  │
-│  │  │          │  │          │  │(Docker)  │  │  (dev env)  │  │  │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────┬──────┘  │  │
-│  │                                                     │         │  │
-│  │                                                     ▼         │  │
-│  │                                           ┌─────────────────┐ │  │
-│  │                                           │ Lambda Deploy   │ │  │
-│  │                                           │ (3 functions)   │ │  │
-│  │                                           │ (dev env)       │ │  │
-│  │                                           └─────────────────┘ │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph GHA["GitHub Actions Workflow<br>Trigger: push to main / Pull Request（変更なし）"]
+        subgraph CI["CI Job（変更なし）<br>対象: app/ + tests/ + lambda/"]
+            A[Checkout] --> B["Lint<br>(ruff)"]
+            B --> C["Test<br>(pytest)"]
+            C --> D[Docker Build]
+        end
+
+        D -->|main branch only| E
+
+        subgraph CD["CD Job（Workspace 対応）"]
+            E[AWS Auth] --> F[ECR Login]
+            F --> G["ECR Push<br>(Docker)"]
+            G --> H["ECS Deploy<br>(dev env)"]
+            H --> I["Lambda Deploy<br>(3 functions)<br>(dev env)"]
+        end
+    end
 ```
 
 ## 2. 変更箇所一覧

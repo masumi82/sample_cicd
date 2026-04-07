@@ -16,92 +16,59 @@ v5 のアーキテクチャに以下を追加する:
 
 ## 1. システム構成図
 
-```
-                         ┌──────────────────────────────────────────────────────────────────────────────┐
-                         │                   AWS Cloud (ap-northeast-1) — Workspace: dev                │
-                         │                                                                              │
-  ┌──────────┐           │  ┌──────────────────────────────────────────────────────────────────────────┐│
-  │  User     │──HTTP──▶ │  │                   VPC (10.0.0.0/16)                                      ││
-  │ (Browser) │          │  │                                                                          ││
-  └──────┬───┘           │  │  ┌──────────────────────────────────────────────────────────────────┐   ││
-         │               │  │  │  Public Subnets (AZ-a / AZ-c)                                    │   ││
-         │               │  │  │                                                                  │   ││
-         │               │  │  │  ┌─────┐     ┌────────────────────────────────────────────────┐ │   ││
-         │               │  │  │  │ ALB │────▶│  ECS Fargate (Auto Scaling 1〜2 tasks)         │ │   ││
-         │               │  │  │  │ :80 │     │  ┌──────────────────────────────────────────┐  │ │   ││
-         │               │  │  │  └─────┘     │  │ FastAPI + Tasks + Attachments             │  │ │   ││
-         │               │  │  │              │  │  + X-Ray SDK + CORS + JSONFormatter       │  │ │   ││
-         │               │  │  │              │  │   │POST /tasks ──────────────────────────┼──┼─┼───┼─┼──▶ SQS
-         │               │  │  │              │  │   │PUT /tasks/{id} (completed) ──────────┼──┼─┼───┼─┼──▶ EventBridge
-         │               │  │  │              │  │   │POST /tasks/{id}/attachments ─────────┼──┼─┼───┼─┼──▶ S3 (Presigned URL)
-         │               │  │  │              │  │   │DELETE /tasks/{id}/attachments/{id} ──┼──┼─┼───┼─┼──▶ S3 (DeleteObject)
-         │               │  │  │              │  └──────────────────────────────────────────┘  │ │   ││
-         │               │  │  │              │  ┌──────────────────────────────────────────┐  │ │   ││
-         │               │  │  │              │  │ X-Ray Daemon (sidecar container)         │──┼─┼───┼─┼──▶ X-Ray Service
-         │               │  │  │              │  │ UDP :2000                                │  │ │   ││
-         │               │  │  │              │  └──────────────────────────────────────────┘  │ │   ││
-         │               │  │  │              └────┼───────────────────────────────────────────┘ │   ││
-         │               │  │  │                   │ :5432                                       │   ││
-         │               │  │  └───────────────────┼────────────────────────────────────────────┘   ││
-         │               │  │                      │                                                 ││
-         │               │  │  ┌───────────────────┼────────────────────────────────────────────┐   ││
-         │               │  │  │  Private Subnets (AZ-a / AZ-c)                                 │   ││
-         │               │  │  │                   │                                            │   ││
-         │               │  │  │    ┌──────────────▼──────────────────────────────────────┐    │   ││
-         │               │  │  │    │  RDS PostgreSQL (dev: Single-AZ)                    │    │   ││
-         │               │  │  │    │  + attachments table (v5)                           │    │   ││
-         │               │  │  │    └─────────────────────────────────────────────────────┘    │   ││
-         │               │  │  │                           ▲ :5432                             │   ││
-         │               │  │  │    ┌──────────────────────┘                                   │   ││
-         │               │  │  │    │  task_cleanup_handler (Lambda in VPC, Active tracing)    │   ││
-         │               │  │  │    │  ← EventBridge Scheduler (cron)                          │   ││
-         │               │  │  │    │  → Secrets Manager VPC Endpoint                          │   ││
-         │               │  │  │    │  → CloudWatch Logs VPC Endpoint                          │   ││
-         │               │  │  └────┼──────────────────────────────────────────────────────────┘   ││
-         │               │  └───────┼──────────────────────────────────────────────────────────────┘│
-         │               │          │                                                               │
-         │  Presigned    │  ┌───────┼──────────────────────────────────────────────────────────────┐│
-         │  PUT URL      │  │  AWS Managed Services                                                ││
-         │    │          │  │                                                                      ││
-         │    ▼          │  │  S3 (attachments) ───────────────────────────────────────────────┐  ││
-         │  ┌──────┐     │  │  └── sample-cicd-dev-attachments (Private bucket)                │  ││
-         └──│  S3  │     │  │       └── tasks/{task_id}/{uuid}-{filename}                      │  ││
-            │Upload│     │  │                              │ OAC                               │  ││
-            └──────┘     │  │                              ▼                                   │  ││
-                         │  │  CloudFront (attachments) ── S3 Origin ──────────────────────────┘  ││
-  ┌──────────┐           │  │  └── sample-cicd-dev (Distribution)                                  ││
-  │  User     │─HTTPS──▶ │  │       └── OAC でセキュア接続                                         ││
-  │(Download) │          │  │                                                                      ││
-  └──────────┘           │  │  S3 (webui) ─────────────────────────────────────────────────────┐  ││
-                         │  │  └── sample-cicd-dev-webui (Private bucket)                       │  ││
-  ┌──────────┐           │  │       └── index.html, assets/*, config.js                        │  ││
-  │  User     │─HTTPS──▶ │  │                              │ OAC                               │  ││
-  │ (Web UI)  │          │  │                              ▼                                   │  ││
-  └─────┬────┘           │  │  CloudFront (webui) ──────── S3 Origin ──────────────────────────┘  ││
-        │                │  │  └── sample-cicd-dev-webui (Distribution)                            ││
-        │ API calls      │  │       └── OAC + SPA fallback (403/404 → /index.html)                 ││
-        │ (CORS)         │  │                                                                      ││
-        └────────────────│──│──▶ ALB → ECS (FastAPI with CORSMiddleware)                           ││
-                         │  │                                                                      ││
-                         │  │  SQS ──────────────────▶ task_created_handler (Lambda, Active tracing)││
-                         │  │  EventBridge ──────────▶ task_completed_handler (Lambda, Active tracing)│
-                         │  │  EventBridge Scheduler ▶ task_cleanup_handler (Lambda, VPC)           ││
-                         │  │                                                                      ││
-                         │  │  X-Ray Service ◀──────── ECS (daemon sidecar) + Lambda (Active)      ││
-                         │  │                                                                      ││
-                         │  │  CloudWatch ─────────────────────────────────────────────────────┐  ││
-                         │  │  ├── Dashboard (ALB / ECS / RDS / Lambda / SQS)                  │  ││
-                         │  │  ├── Alarms (12) ────▶ SNS Topic ────▶ (サブスクリプション未設定) │  ││
-                         │  │  └── Logs (structured JSON)                                      │  ││
-                         │  │                                                                      ││
-                         │  │  Secrets Manager, App AutoScaling, ECR                               ││
-                         │  └──────────────────────────────────────────────────────────────────────┘│
-                         └──────────────────────────────────────────────────────────────────────────┘
-                                  ▲
-  ┌──────────┐   ┌──────────────┐ │
-  │  GitHub   │──▶│GitHub Actions│─┘  (CI/CD: Backend + Frontend deploy)
-  │  (push)   │   └──────────────┘
-  └──────────┘
+```mermaid
+graph TB
+    User["User (Browser)"] -->|HTTP| ALB
+    UserDL["User (Download)"] -->|HTTPS| CFAtt
+    User -->|"Presigned PUT URL"| S3Upload["S3 Upload"]
+    UserWebUI["User (Web UI)"] -->|HTTPS| CFWebUI
+    UserWebUI -->|"API calls (CORS)"| ALB
+
+    subgraph AWS["AWS Cloud (ap-northeast-1) - Workspace: dev"]
+        subgraph VPC["VPC (10.0.0.0/16)"]
+            subgraph Public["Public Subnets (AZ-a / AZ-c)"]
+                ALB["ALB :80"] --> ECS["ECS Fargate (Auto Scaling 1~2 tasks)"]
+            end
+            subgraph ECSTask["ECS Task"]
+                ECS --- FastAPI["FastAPI + Tasks + Attachments<br>+ X-Ray SDK + CORS + JSONFormatter"]
+                ECS --- XRayDaemon["X-Ray Daemon (sidecar)<br>UDP :2000"]
+            end
+            subgraph Private["Private Subnets (AZ-a / AZ-c)"]
+                RDS["RDS PostgreSQL (dev: Single-AZ)<br>+ attachments table"]
+                CleanupLambda["task_cleanup_handler<br>(Lambda in VPC, Active tracing)"]
+            end
+            ECS -->|:5432| RDS
+            CleanupLambda -->|:5432| RDS
+            CleanupLambda --> VPCE_SM["Secrets Manager VPC Endpoint"]
+            CleanupLambda --> VPCE_CW["CloudWatch Logs VPC Endpoint"]
+        end
+
+        ECS -->|"POST /tasks"| SQS
+        ECS -->|"PUT /tasks/id (completed)"| EB
+        ECS -->|"Presigned URL / DeleteObject"| S3Att
+
+        subgraph Managed["AWS Managed Services"]
+            S3Att["S3 (attachments)<br>sample-cicd-dev-attachments"] -->|OAC| CFAtt["CloudFront (attachments)"]
+            S3WebUI["S3 (webui)<br>sample-cicd-dev-webui<br>index.html, assets/*, config.js"] -->|OAC| CFWebUI["CloudFront (webui)<br>SPA fallback (403/404 → /index.html)"]
+            SQS["SQS"] --> LambdaCreated["task_created_handler<br>(Lambda, Active tracing)"]
+            EB["EventBridge"] --> LambdaCompleted["task_completed_handler<br>(Lambda, Active tracing)"]
+            EBScheduler["EventBridge Scheduler"] --> CleanupLambda
+            XRayDaemon --> XRayService["X-Ray Service"]
+            LambdaCreated --> XRayService
+            LambdaCompleted --> XRayService
+            subgraph CloudWatch["CloudWatch"]
+                Dashboard["Dashboard<br>(ALB / ECS / RDS / Lambda / SQS)"]
+                Alarms["Alarms (12)"] --> SNS["SNS Topic<br>(サブスクリプション未設定)"]
+                Logs["Logs (structured JSON)"]
+            end
+            SM["Secrets Manager"]
+            AutoScaling["App AutoScaling"]
+            ECR["ECR"]
+        end
+    end
+
+    GitHub["GitHub (push)"] --> GHA["GitHub Actions<br>CI/CD: Backend + Frontend deploy"]
+    GHA --> ECR
 ```
 
 ## 2. コンポーネント一覧

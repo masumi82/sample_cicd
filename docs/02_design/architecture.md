@@ -8,40 +8,22 @@
 
 ## 1. システム構成図
 
-```
-                         ┌─────────────────────────────────────────────┐
-                         │                  AWS Cloud                  │
-                         │              ap-northeast-1                 │
-                         │                                             │
-  ┌──────────┐           │  ┌─────────────────────────────────────┐   │
-  │  User     │──HTTP──▶│  │          VPC (10.0.0.0/16)           │   │
-  │ (Browser) │          │  │                                     │   │
-  └──────────┘           │  │  ┌──────────────────────────────┐  │   │
-                         │  │  │   Public Subnet (AZ-a / AZ-c) │  │   │
-                         │  │  │                                │  │   │
-                         │  │  │  ┌─────┐     ┌─────────────┐  │  │   │
-                         │  │  │  │ ALB │────▶│ ECS Fargate  │  │  │   │
-                         │  │  │  │ :80 │     │  (Task x 1)  │  │  │   │
-                         │  │  │  └─────┘     └──────┬──────┘  │  │   │
-                         │  │  │                      │         │  │   │
-                         │  │  └──────────────────────┼─────────┘  │   │
-                         │  └─────────────────────────┼────────────┘   │
-                         │                            │                │
-                         │                    ┌───────▼───────┐        │
-                         │                    │  CloudWatch   │        │
-                         │                    │    Logs       │        │
-                         │                    └───────────────┘        │
-                         │                                             │
-                         │  ┌───────────────┐                          │
-                         │  │     ECR       │                          │
-                         │  │ (Image Repo)  │                          │
-                         │  └───────▲───────┘                          │
-                         └──────────┼──────────────────────────────────┘
-                                    │
-  ┌──────────┐   ┌──────────────┐   │
-  │  GitHub   │──▶│GitHub Actions│───┘
-  │  (push)   │   │  CI/CD       │
-  └──────────┘   └──────────────┘
+```mermaid
+graph TB
+    User["User (Browser)"] -->|HTTP| ALB
+
+    subgraph AWS["AWS Cloud (ap-northeast-1)"]
+        subgraph VPC["VPC (10.0.0.0/16)"]
+            subgraph Public["Public Subnet (AZ-a / AZ-c)"]
+                ALB["ALB :80"] --> ECS["ECS Fargate (Task x 1)"]
+            end
+        end
+        ECS --> CWLogs["CloudWatch Logs"]
+        ECR["ECR (Image Repo)"]
+    end
+
+    GitHub["GitHub (push)"] --> GHA["GitHub Actions CI/CD"]
+    GHA --> ECR
 ```
 
 ## 2. コンポーネント一覧

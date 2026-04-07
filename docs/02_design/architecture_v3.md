@@ -16,59 +16,33 @@ v2 のアーキテクチャに以下を追加する:
 
 ## 1. システム構成図
 
-```
-                         ┌────────────────────────────────────────────────────────────────┐
-                         │                        AWS Cloud                               │
-                         │                    ap-northeast-1                              │
-                         │                                                                │
-  ┌──────────┐           │  ┌──────────────────────────────────────────────────────────┐  │
-  │  User     │──HTTP──▶ │  │                  VPC (10.0.0.0/16)                       │  │
-  │ (Browser) │          │  │                                                          │  │
-  └──────────┘           │  │  ┌────────────────────────────────────────────────────┐  │  │
-                         │  │  │  Public Subnets (AZ-a / AZ-c)                      │  │  │
-                         │  │  │                                                    │  │  │
-                         │  │  │  ┌─────┐     ┌──────────────────────────────────┐  │  │  │
-                         │  │  │  │ ALB │────▶│       ECS Fargate (Auto Scaling) │  │  │  │
-                         │  │  │  │ :80 │     │  Task 1: FastAPI + Tasks         │  │  │  │
-                         │  │  │  └─────┘     │  Task 2: (スケールアウト時)      │  │  │  │
-                         │  │  │              │  Task 3: (最大)                  │  │  │  │
-                         │  │  │              │  ← min:1 / max:3 / target CPU70% │  │  │  │
-                         │  │  │              └──────────────┬───────────────────┘  │  │  │
-                         │  │  └─────────────────────────────┼──────────────────────┘  │  │
-                         │  │                                │ :5432                   │  │
-                         │  │  ┌─────────────────────────────┼──────────────────────┐  │  │
-                         │  │  │  Private Subnets (AZ-a / AZ-c)                     │  │  │
-                         │  │  │                             │                      │  │  │
-                         │  │  │          ┌──────────────────▼────────────────────┐ │  │  │
-                         │  │  │          │    RDS PostgreSQL (Multi-AZ)          │ │  │  │
-                         │  │  │          │   Primary (AZ-a) | Standby (AZ-c)    │ │  │  │
-                         │  │  │          │   同期レプリケーション / 自動フェイルオーバー  │ │  │  │
-                         │  │  │          └───────────────────────────────────────┘ │  │  │
-                         │  │  └────────────────────────────────────────────────────┘  │  │
-                         │  └──────────────────────────────────────────────────────────┘  │
-                         │                                                                │
-                         │  ┌────────────────┐  ┌─────────────────┐  ┌────────────────┐  │
-                         │  │ Secrets Manager│  │  CloudWatch     │  │ App AutoScaling│  │
-                         │  │ (DB creds)     │  │  Logs / Alarms  │  │ (ECS Target)   │  │
-                         │  └────────────────┘  └─────────────────┘  └────────────────┘  │
-                         │                                                                │
-                         │  ┌──────────────────────────────────────────────────────────┐  │
-                         │  │  HTTPS 準備コード（未デプロイ / enable_https=false）       │  │
-                         │  │  ┌────────────┐  ┌────────────┐  ┌─────────────────────┐ │  │
-                         │  │  │   ACM      │  │  Route53   │  │ ALB HTTPS Listener  │ │  │
-                         │  │  │ (証明書)    │  │  (DNS)     │  │ (:443 + :80→301)    │ │  │
-                         │  │  └────────────┘  └────────────┘  └─────────────────────┘ │  │
-                         │  └──────────────────────────────────────────────────────────┘  │
-                         │                                                                │
-                         │  ┌────────────┐                                                │
-                         │  │    ECR     │                                                │
-                         │  └─────▲──────┘                                                │
-                         └────────┼───────────────────────────────────────────────────────┘
-                                  │
-  ┌──────────┐   ┌──────────────┐ │
-  │  GitHub   │──▶│GitHub Actions│─┘
-  │  (push)   │   │  CI/CD       │
-  └──────────┘   └──────────────┘
+```mermaid
+graph TB
+    User["User (Browser)"] -->|HTTP| ALB
+
+    subgraph AWS["AWS Cloud (ap-northeast-1)"]
+        subgraph VPC["VPC (10.0.0.0/16)"]
+            subgraph Public["Public Subnets (AZ-a / AZ-c)"]
+                ALB["ALB :80"] --> ECS["ECS Fargate (Auto Scaling)<br>min:1 / max:3 / target CPU70%"]
+            end
+            subgraph Private["Private Subnets (AZ-a / AZ-c)"]
+                RDS["RDS PostgreSQL (Multi-AZ)<br>Primary (AZ-a) | Standby (AZ-c)<br>同期レプリケーション / 自動フェイルオーバー"]
+            end
+            ECS -->|:5432| RDS
+        end
+        SM["Secrets Manager (DB creds)"]
+        CW["CloudWatch Logs / Alarms"]
+        AutoScaling["App AutoScaling (ECS Target)"]
+        subgraph HTTPS["HTTPS 準備コード (未デプロイ / enable_https=false)"]
+            ACM["ACM (証明書)"]
+            Route53["Route53 (DNS)"]
+            HTTPSListener["ALB HTTPS Listener<br>(:443 + :80→301)"]
+        end
+        ECR["ECR"]
+    end
+
+    GitHub["GitHub (push)"] --> GHA["GitHub Actions CI/CD"]
+    GHA --> ECR
 ```
 
 ## 2. コンポーネント一覧

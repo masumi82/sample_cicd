@@ -16,67 +16,47 @@ v4 のアーキテクチャに以下を追加する:
 
 ## 1. システム構成図
 
-```
-                         ┌──────────────────────────────────────────────────────────────────────────────┐
-                         │                   AWS Cloud (ap-northeast-1) — Workspace: dev            │
-                         │                                                                          │
-  ┌──────────┐           │  ┌──────────────────────────────────────────────────────────────────────┐│
-  │  User     │──HTTP──▶ │  │                   VPC (10.0.0.0/16)                                  ││
-  │ (Browser) │          │  │                                                                      ││
-  └──────┬───┘           │  │  ┌──────────────────────────────────────────────────────────────┐   ││
-         │               │  │  │  Public Subnets (AZ-a / AZ-c)                                │   ││
-         │               │  │  │                                                              │   ││
-         │               │  │  │  ┌─────┐     ┌────────────────────────────────────────────┐ │   ││
-         │               │  │  │  │ ALB │────▶│  ECS Fargate (Auto Scaling 1〜2 tasks)     │ │   ││
-         │               │  │  │  │ :80 │     │  FastAPI + Tasks + Attachments              │ │   ││
-         │               │  │  └─────┘     │    │POST /tasks ─────────────────────────┼─┼───┼─┼──▶ SQS
-         │               │  │  │              │    │PUT /tasks/{id} (completed) ──────────┼─┼───┼─┼──▶ EventBridge
-         │               │  │  │              │    │POST /tasks/{id}/attachments ─────────┼─┼───┼─┼──▶ S3 (Presigned URL 生成)
-         │               │  │  │              │    │DELETE /tasks/{id}/attachments/{id} ──┼─┼──┼─┼──▶ S3 (DeleteObject)
-         │               │  │              └────┼───────────────────────────────────────┘ │   ││
-         │               │  │  │                   │ :5432                                   │   ││
-         │               │  │  └───────────────────┼────────────────────────────────────────────────┘   ││
-         │               │  │                      │                                               ││
-         │               │  │  ┌───────────────────┼──────────────────────────────────────────────┐   ││
-         │               │  │  │  Private Subnets (AZ-a / AZ-c)                               │   ││
-         │               │  │  │                   │                                          │   ││
-         │               │  │  │    ┌──────────────▼──────────────────────────────────────┐  │   ││
-         │               │  │  │    │  RDS PostgreSQL (dev: Single-AZ)                    │  │   ││
-         │               │  │  │    │  + attachments table (v5)                           │  │   ││
-         │               │  │  │    └───────────────────────────────────────────────────────────┘  │   ││
-         │               │  │  │                           ▲ :5432                           │   ││
-         │               │  │  │    ┌──────────────────────┘                                 │   ││
-         │               │  │  │    │  task_cleanup_handler (Lambda in VPC)                  │   ││
-         │               │  │  │    │  ← EventBridge Scheduler (cron)                        │   ││
-         │               │  │  │    │  → Secrets Manager VPC Endpoint                        │   ││
-         │               │  │  │    │  → CloudWatch Logs VPC Endpoint                        │   ││
-         │               │  │  └────┼──────────────────────────────────────────────────────────┘   ││
-         │               │  └───────┼───────────────────────────────────────────────────────────┘│
-         │               │          │                                                             │
-         │  Presigned    │  ┌───────┼───────────────────────────────────────────────────────────┐│
-         │  PUT URL      │  │  AWS Managed Services                                             ││
-         │    │          │  │                                                                   ││
-         │    ▼          │  │  S3 ──────────────────────────────────────────────────────────┐  ││
-         │  ┌──────┐     │  │  └── sample-cicd-dev-attachments (Private bucket)             │  ││
-         └──│  S3  │     │  │       └── tasks/{task_id}/{uuid}-{filename}                   │  ││
-            │Upload│     │  │                              │ OAC                            │  ││
-            └──────┘     │  │                              ▼                                │  ││
-                         │  │  CloudFront ─────────────── S3 Origin ─────────────────────────┘  ││
-  ┌──────────┐           │  │  └── sample-cicd-dev (Distribution)                               ││
-  │  User     │─HTTPS──▶ │  │       └── Origin Access Control (OAC) でセキュア接続              ││
-  │(Download) │          │  │                                                                   ││
-  └──────────┘           │  │  SQS ──────────────────▶ task_created_handler (Lambda)            ││
-                         │  │  EventBridge ──────────▶ task_completed_handler (Lambda)           ││
-                         │  │  EventBridge Scheduler ▶ task_cleanup_handler (Lambda, VPC)        ││
-                         │  │                                                                   ││
-                         │  │  Secrets Manager, CloudWatch Logs, App AutoScaling, ECR           ││
-                         │  └───────────────────────────────────────────────────────────────────────┘│
-                         └──────────────────────────────────────────────────────────────────────┘
-                                  ▲
-  ┌──────────┐   ┌──────────────┐ │
-  │  GitHub   │──▶│GitHub Actions│─┘  (CI/CD: Workspace 対応)
-  │  (push)   │   └──────────────┘
-  └──────────┘
+```mermaid
+graph TB
+    User["User (Browser)"] -->|HTTP| ALB
+    UserDL["User (Download)"] -->|HTTPS| CF
+    User -->|"Presigned PUT URL"| S3Upload["S3 Upload"]
+
+    subgraph AWS["AWS Cloud (ap-northeast-1) - Workspace: dev"]
+        subgraph VPC["VPC (10.0.0.0/16)"]
+            subgraph Public["Public Subnets (AZ-a / AZ-c)"]
+                ALB["ALB :80"] --> ECS["ECS Fargate (Auto Scaling 1~2 tasks)<br>FastAPI + Tasks + Attachments"]
+            end
+            subgraph Private["Private Subnets (AZ-a / AZ-c)"]
+                RDS["RDS PostgreSQL (dev: Single-AZ)<br>+ attachments table (v5)"]
+                CleanupLambda["task_cleanup_handler<br>(Lambda in VPC)"]
+            end
+            ECS -->|:5432| RDS
+            CleanupLambda -->|:5432| RDS
+            CleanupLambda --> VPCE_SM["Secrets Manager VPC Endpoint"]
+            CleanupLambda --> VPCE_CW["CloudWatch Logs VPC Endpoint"]
+        end
+
+        ECS -->|"POST /tasks"| SQS
+        ECS -->|"PUT /tasks/id (completed)"| EB
+        ECS -->|"Presigned URL 生成"| S3
+        ECS -->|"DeleteObject"| S3
+
+        subgraph Managed["AWS Managed Services"]
+            S3["S3<br>sample-cicd-dev-attachments<br>(Private bucket)"]
+            S3 -->|OAC| CF["CloudFront<br>sample-cicd-dev<br>(OAC でセキュア接続)"]
+            SQS["SQS"] --> LambdaCreated["task_created_handler (Lambda)"]
+            EB["EventBridge"] --> LambdaCompleted["task_completed_handler (Lambda)"]
+            EBScheduler["EventBridge Scheduler"] --> CleanupLambda
+            SM["Secrets Manager"]
+            CWLogs["CloudWatch Logs"]
+            AutoScaling["App AutoScaling"]
+            ECR["ECR"]
+        end
+    end
+
+    GitHub["GitHub (push)"] --> GHA["GitHub Actions<br>CI/CD: Workspace 対応"]
+    GHA --> ECR
 ```
 
 ## 2. コンポーネント一覧
