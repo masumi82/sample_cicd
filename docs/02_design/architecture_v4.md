@@ -17,43 +17,84 @@ v3 のアーキテクチャに以下を追加する:
 
 ## 1. システム構成図
 
+### v4 追加部分
+
 ```mermaid
-graph TB
-    User["User (Browser)"] -->|HTTP| ALB
-
-    subgraph AWS["AWS Cloud (ap-northeast-1)"]
-        subgraph VPC["VPC (10.0.0.0/16)"]
-            subgraph Public["Public Subnets (AZ-a / AZ-c)"]
-                ALB["ALB :80"] --> ECS["ECS Fargate (Auto Scaling 1~3 tasks)<br>FastAPI + Tasks"]
-            end
-            subgraph Private["Private Subnets (AZ-a / AZ-c)"]
-                RDS["RDS PostgreSQL (Multi-AZ)<br>Primary (AZ-a) | Standby (AZ-c)"]
-                CleanupLambda["task_cleanup_handler<br>(Lambda in VPC)"]
-            end
-            ECS -->|:5432| RDS
-            CleanupLambda -->|:5432| RDS
-            CleanupLambda --> VPCE_SM["Secrets Manager VPC Endpoint"]
-            CleanupLambda --> VPCE_CW["CloudWatch Logs VPC Endpoint"]
-        end
-
-        ECS -->|"POST /tasks"| SQS
-        ECS -->|"PUT /tasks/id (completed)"| EB
-
-        subgraph Managed["AWS Managed Services"]
-            SQS["SQS<br>sample-cicd-task-events<br>+ DLQ"] --> LambdaCreated["task_created_handler (Lambda)"]
-            EB["EventBridge<br>sample-cicd-bus"] --> LambdaCompleted["task_completed_handler (Lambda)"]
-            EBScheduler["EventBridge Scheduler<br>cron(0 15 * * ? *) UTC"] --> CleanupLambda
-            LambdaCreated --> CWLogs["CloudWatch Logs"]
-            LambdaCompleted --> CWLogs
-            SM["Secrets Manager"]
-            AutoScaling["App AutoScaling"]
-            ECR["ECR"]
-        end
-    end
-
-    GitHub["GitHub (push)"] --> GHA["GitHub Actions<br>CI/CD: lint/test/build/lambda-zip<br>ECR push + ECS deploy + Lambda deploy"]
-    GHA --> ECR
+graph LR
+    API["FastAPI"] -->|"POST /tasks"| SQS["SQS Queue<br>+ DLQ"]
+    SQS --> L1["Lambda<br>task_created_handler"]
+    API -->|"PUT /tasks/id<br>(completed)"| EB["EventBridge<br>カスタムバス"]
+    EB --> L2["Lambda<br>task_completed_handler"]
+    SCHED["EventBridge Scheduler<br>cron 毎日"] --> L3["Lambda<br>task_cleanup_handler<br>(VPC内)"]
+    L3 --> RDS["RDS"]
 ```
+
+> 全体構成は v3 のアーキテクチャに上記を追加した形。
+
+<details>
+<summary>全体構成図（ASCII）</summary>
+
+```
+                         ┌──────────────────────────────────────────────────────────────────────────┐
+                         │                            AWS Cloud (ap-northeast-1)                     │
+                         │                                                                           │
+  ┌──────────┐           │  ┌──────────────────────────────────────────────────────────────────────┐ │
+  │  User     │──HTTP──▶ │  │                       VPC (10.0.0.0/16)                              │ │
+  │ (Browser) │          │  │                                                                      │ │
+  └──────────┘           │  │  ┌──────────────────────────────────────────────────────────────┐   │ │
+                         │  │  │  Public Subnets (AZ-a / AZ-c)                                │   │ │
+                         │  │  │                                                              │   │ │
+                         │  │  │  ┌─────┐     ┌────────────────────────────────────────────┐ │   │ │
+                         │  │  │  │ ALB │────▶│  ECS Fargate (Auto Scaling 1〜3 tasks)     │ │   │ │
+                         │  │  │  │ :80 │     │  FastAPI + Tasks                           │ │   │ │
+                         │  │  │  └─────┘     │    │POST /tasks ──────────────────────────┼─┼───┼─┼──▶ SQS
+                         │  │  │              │    │PUT /tasks/{id} (completed=true) ─────┼─┼───┼─┼──▶ EventBridge
+                         │  │  │              └────┼───────────────────────────────────────┘ │   │ │
+                         │  │  │                   │ :5432                                   │   │ │
+                         │  │  └───────────────────┼──────────────────────────────────────────┘   │ │
+                         │  │                      │                                               │ │
+                         │  │  ┌───────────────────┼──────────────────────────────────────────┐   │ │
+                         │  │  │  Private Subnets (AZ-a / AZ-c)                               │   │ │
+                         │  │  │                   │                                          │   │ │
+                         │  │  │    ┌──────────────▼──────────────────────────────────────┐  │   │ │
+                         │  │  │    │  RDS PostgreSQL (Multi-AZ)                          │  │   │ │
+                         │  │  │    │  Primary (AZ-a) | Standby (AZ-c)                   │  │   │ │
+                         │  │  │    └─────────────────────────────────────────────────────┘  │   │ │
+                         │  │  │                           ▲ :5432                           │   │ │
+                         │  │  │    ┌──────────────────────┘                                 │   │ │
+                         │  │  │    │  task_cleanup_handler (Lambda in VPC)                  │   │ │
+                         │  │  │    │  ← EventBridge Scheduler (cron)                        │   │ │
+                         │  │  │    │  → Secrets Manager VPC Endpoint                        │   │ │
+                         │  │  │    │  → CloudWatch Logs VPC Endpoint                        │   │ │
+                         │  │  └────┼───────────────────────────────────────────────────────┘   │ │
+                         │  └───────┼───────────────────────────────────────────────────────────┘ │
+                         │          │                                                              │
+                         │  ┌───────┼───────────────────────────────────────────────────────────┐ │
+                         │  │  AWS Managed Services                                             │ │
+                         │  │                                                                   │ │
+                         │  │  SQS ──────────────────▶ task_created_handler (Lambda)            │ │
+                         │  │  ├── sample-cicd-task-events (Standard Queue)                    │ │
+                         │  │  └── sample-cicd-task-events-dlq (Dead Letter Queue)             │ │
+                         │  │                               │ CloudWatch Logs                   │ │
+                         │  │  EventBridge ──────────────▶ task_completed_handler (Lambda)      │ │
+                         │  │  ├── sample-cicd-bus (Custom Event Bus)                          │ │
+                         │  │  └── Rule: source=sample-cicd, detail-type=TaskCompleted         │ │
+                         │  │                               │ CloudWatch Logs                   │ │
+                         │  │  EventBridge Scheduler ─────▶ task_cleanup_handler (Lambda, VPC) │ │
+                         │  │  └── cron(0 15 * * ? *) UTC  │ CloudWatch Logs (VPC Endpoint)   │ │
+                         │  │                                                                   │ │
+                         │  │  Secrets Manager, CloudWatch Logs, App AutoScaling, ECR          │ │
+                         │  └───────────────────────────────────────────────────────────────────┘ │
+                         │                                                                        │
+                         └────────────────────────────────────────────────────────────────────────┘
+                                  ▲
+  ┌──────────┐   ┌──────────────┐ │
+  │  GitHub   │──▶│GitHub Actions│─┘  (CI: lint/test/build/lambda-zip, CD: ECR push + ECS deploy + Lambda deploy)
+  │  (push)   │   └──────────────┘
+  └──────────┘
+```
+
+</details>
 
 ## 2. コンポーネント一覧
 
