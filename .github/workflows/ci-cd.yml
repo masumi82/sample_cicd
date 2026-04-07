@@ -119,10 +119,10 @@ jobs:
 
       - name: Configure API URL
         run: |
-          ALB_DNS=$(aws elbv2 describe-load-balancers \
-            --names sample-cicd-${{ env.DEPLOY_ENV }}-alb \
-            --query 'LoadBalancers[0].DNSName' --output text)
-          echo "window.APP_CONFIG = { API_URL: 'http://${ALB_DNS}' };" > frontend/dist/config.js
+          WEBUI_CF_DOMAIN=$(aws cloudfront list-distributions \
+            --query "DistributionList.Items[?Comment=='sample-cicd-${{ env.DEPLOY_ENV }} webui CDN'].DomainName" \
+            --output text)
+          echo "window.APP_CONFIG = { API_URL: 'https://${WEBUI_CF_DOMAIN}' };" > frontend/dist/config.js
 
       - name: Deploy frontend to S3
         run: |

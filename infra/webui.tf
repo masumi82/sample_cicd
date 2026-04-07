@@ -57,12 +57,42 @@ resource "aws_cloudfront_distribution" "webui" {
   price_class         = var.cloudfront_price_class
   comment             = "${local.prefix} webui CDN"
 
+  # Origin 1: S3 (static assets)
   origin {
     domain_name              = aws_s3_bucket.webui.bucket_regional_domain_name
     origin_id                = "s3-webui"
     origin_access_control_id = aws_cloudfront_origin_access_control.webui.id
   }
 
+  # Origin 2: ALB (API proxy)
+  origin {
+    domain_name = aws_lb.main.dns_name
+    origin_id   = "alb-api"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # API behavior: /tasks* → ALB (no caching, all methods)
+  ordered_cache_behavior {
+    path_pattern     = "/tasks*"
+    target_origin_id = "alb-api"
+
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    viewer_protocol_policy = "https-only"
+
+    # AWS managed: CachingDisabled
+    cache_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+    # AWS managed: AllViewerExceptHostHeader (forward query strings, headers except Host)
+    origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+  }
+
+  # Default behavior: S3 (SPA static assets)
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
