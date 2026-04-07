@@ -33,9 +33,9 @@ Required deliverables (v5 — 完了済み):
 - [x] `docs/01_requirements/requirements_v5.md` — S3 + CloudFront + Presigned URL + Terraform Workspace の要件
 - [x] CLAUDE.md に v5 の情報が反映済みであること
 
-Required deliverables (v6):
-- [ ] `docs/01_requirements/requirements_v6.md` — Observability (CloudWatch Dashboard/Alarms, X-Ray, SNS, 構造化ログ) + Web UI (React SPA on S3+CloudFront, CORS, フロントエンド CI/CD) の要件
-- [ ] CLAUDE.md に v6 の情報が反映済みであること
+Required deliverables (v6 — 完了済み):
+- [x] `docs/01_requirements/requirements_v6.md` — Observability (CloudWatch Dashboard/Alarms, X-Ray, SNS, 構造化ログ) + Web UI (React SPA on S3+CloudFront, CORS, フロントエンド CI/CD) の要件
+- [x] CLAUDE.md に v6 の情報が反映済みであること
 
 ### Phase 2: Design (設計)
 Required deliverables (v1 & v2 — 完了済み):
@@ -64,10 +64,10 @@ Required deliverables (v5 — 完了済み):
 - [x] `docs/02_design/infrastructure_v5.md` — Terraform リソース設計（S3, CloudFront, OAC, Workspace 命名）
 - [x] `docs/02_design/cicd_v5.md` — CI/CD パイプライン設計（DEPLOY_ENV + 環境名対応）
 
-Required deliverables (v6):
-- [ ] `docs/02_design/architecture_v6.md` — アーキテクチャ設計（Observability: Dashboard/Alarms/X-Ray/構造化ログ + Web UI: React SPA on S3+CloudFront）
-- [ ] `docs/02_design/infrastructure_v6.md` — Terraform リソース設計（monitoring.tf, sns.tf, webui.tf, X-Ray sidecar, IAM 更新）
-- [ ] `docs/02_design/cicd_v6.md` — CI/CD パイプライン設計（Node.js セットアップ + フロントエンドビルド・デプロイ）
+Required deliverables (v6 — 完了済み):
+- [x] `docs/02_design/architecture_v6.md` — アーキテクチャ設計（Observability: Dashboard/Alarms/X-Ray/構造化ログ + Web UI: React SPA on S3+CloudFront）
+- [x] `docs/02_design/infrastructure_v6.md` — Terraform リソース設計（monitoring.tf, sns.tf, webui.tf, X-Ray sidecar, IAM 更新）
+- [x] `docs/02_design/cicd_v6.md` — CI/CD パイプライン設計（Node.js セットアップ + フロントエンドビルド・デプロイ）
 
 ### Phase 3: Implementation (実装)
 Required deliverables (v1 & v2 — 完了済み):
@@ -117,27 +117,27 @@ Required deliverables (v5 — 完了済み):
 - [x] `.github/workflows/ci-cd.yml` — DEPLOY_ENV + 環境名付きリソース名
 - [x] Code passes lint and Terraform validate
 
-Required deliverables (v6):
-- [ ] `infra/monitoring.tf` — CloudWatch Dashboard (1) + Alarms (12)
-- [ ] `infra/sns.tf` — SNS Topic（サブスクリプションは conditional: alarm_email が空なら作成しない）
-- [ ] `infra/webui.tf` — Web UI 用 S3 バケット + CloudFront ディストリビューション（OAC, SPA フォールバック）
-- [ ] `infra/variables.tf` — v6 変数追加（alarm 閾値, alarm_email 等）
-- [ ] `infra/outputs.tf` — v6 出力追加（dashboard_url, sns_topic_arn, webui_bucket_name, webui_cloudfront_domain_name, webui_cloudfront_distribution_id）
-- [ ] `infra/dev.tfvars` — v6 変数値追加
-- [ ] `infra/prod.tfvars` — v6 変数値追加
-- [ ] `infra/iam.tf` — ECS タスクロール + Lambda 3 ロールに X-Ray 権限追加
-- [ ] `infra/ecs.tf` — X-Ray daemon サイドカー追加、環境変数追加（ENABLE_XRAY, CORS_ALLOWED_ORIGINS）、CPU/Memory 引き上げ
-- [ ] `infra/logs.tf` — X-Ray daemon 用 CloudWatch Log Group 追加
-- [ ] `infra/lambda.tf` — 3 関数に `tracing_config { mode = "Active" }` 追加
-- [ ] `app/requirements.txt` — `aws-xray-sdk` 追加
-- [ ] `app/main.py` — X-Ray SDK 初期化（graceful degradation）、CORSMiddleware 追加、構造化ログ（JSONFormatter）設定
-- [ ] `lambda/task_created_handler.py` — 構造化ログ（JSONFormatter）追加
-- [ ] `lambda/task_completed_handler.py` — 構造化ログ（JSONFormatter）追加
-- [ ] `lambda/task_cleanup_handler.py` — 構造化ログ（JSONFormatter）追加
-- [ ] `frontend/` — React + Vite SPA（package.json, vite.config.js, src/ 配下コンポーネント群）
-- [ ] `.github/workflows/ci-cd.yml` — Node.js セットアップ + フロントエンドビルド (CI) + S3 sync + CloudFront invalidation (CD)
-- [ ] Code passes lint (`ruff check app/ tests/ lambda/`) and Terraform validate
-- [ ] Frontend builds successfully (`cd frontend && npm ci && npm run build`)
+Required deliverables (v6 — 完了済み):
+- [x] `infra/monitoring.tf` — CloudWatch Dashboard (1) + Alarms (12)
+- [x] `infra/sns.tf` — SNS Topic（サブスクリプションは conditional: alarm_email が空なら作成しない）
+- [x] `infra/webui.tf` — Web UI 用 S3 バケット + CloudFront ディストリビューション（OAC, SPA フォールバック）
+- [x] `infra/variables.tf` — v6 変数追加（alarm 閾値, alarm_email 等）
+- [x] `infra/outputs.tf` — v6 出力追加（dashboard_url, sns_topic_arn, webui_bucket_name, webui_cloudfront_domain_name, webui_cloudfront_distribution_id）
+- [x] `infra/dev.tfvars` — v6 変数値追加
+- [x] `infra/prod.tfvars` — v6 変数値追加
+- [x] `infra/iam.tf` — ECS タスクロール + Lambda 3 ロールに X-Ray 権限追加
+- [x] `infra/ecs.tf` — X-Ray daemon サイドカー追加、環境変数追加（ENABLE_XRAY, CORS_ALLOWED_ORIGINS）、CPU/Memory 引き上げ
+- [x] `infra/logs.tf` — X-Ray daemon 用 CloudWatch Log Group 追加
+- [x] `infra/lambda.tf` — 3 関数に `tracing_config { mode = "Active" }` 追加
+- [x] `app/requirements.txt` — `aws-xray-sdk` 追加
+- [x] `app/main.py` — X-Ray SDK 初期化（graceful degradation）、CORSMiddleware 追加、構造化ログ（JSONFormatter）設定
+- [x] `lambda/task_created_handler.py` — 構造化ログ（JSONFormatter）追加
+- [x] `lambda/task_completed_handler.py` — 構造化ログ（JSONFormatter）追加
+- [x] `lambda/task_cleanup_handler.py` — 構造化ログ（JSONFormatter）追加
+- [x] `frontend/` — React + Vite SPA（package.json, vite.config.js, src/ 配下コンポーネント群）
+- [x] `.github/workflows/ci-cd.yml` — Node.js セットアップ + フロントエンドビルド (CI) + S3 sync + CloudFront invalidation (CD)
+- [x] Code passes lint (`ruff check app/ tests/ lambda/`) and Terraform validate
+- [x] Frontend builds successfully (`cd frontend && npm ci && npm run build`)
 
 ### Phase 4: Test (テスト)
 Required deliverables (v1 & v2 — 完了済み):
@@ -161,10 +161,10 @@ Required deliverables (v5 — 完了済み):
 - [x] `tests/test_attachments.py` — 添付ファイル CRUD + スキーマバリデーションテスト（TC-24〜TC-39）
 - [x] v4 までの既存テスト（TC-01〜TC-23）が引き続き全件 PASS
 
-Required deliverables (v6):
-- [ ] `docs/04_test/test_plan_v6.md` — テスト計画書（v6）
-- [ ] `tests/test_observability.py` — CORS / 構造化ログ / X-Ray graceful degradation テスト（TC-40〜TC-46）
-- [ ] v5 までの既存テスト（TC-01〜TC-39, 46 件）が引き続き全件 PASS
+Required deliverables (v6 — 完了済み):
+- [x] `docs/04_test/test_plan_v6.md` — テスト計画書（v6）
+- [x] `tests/test_observability.py` — CORS / 構造化ログ / X-Ray graceful degradation テスト（TC-40〜TC-46）
+- [x] v5 までの既存テスト（TC-01〜TC-39, 46 件）が引き続き全件 PASS
 
 ### Phase 5: Deploy (デプロイ)
 Required deliverables (v1 & v2 — 完了済み):
@@ -196,18 +196,18 @@ Required deliverables (v5 — 完了済み):
 - [x] `DELETE /tasks/{id}/attachments/{id}` で S3 オブジェクトが削除されることを確認
 - [x] 全リソース名が `sample-cicd-dev-*` パターンであることを確認
 
-Required deliverables (v6):
-- [ ] `docs/05_deploy/deploy_procedure_v6.md` — デプロイ手順書（v6）
-- [ ] `docs/05_deploy/verification_v6.md` — 動作確認記録（v6）
-- [ ] `terraform apply` で CloudWatch Dashboard / Alarms / SNS Topic / Web UI S3 / Web UI CloudFront が作成済み
-- [ ] CloudWatch Dashboard にメトリクス���表示されることを確認
-- [ ] CloudWatch Alarms が作成され、大部分が OK 状態であることを確認
-- [ ] X-Ray コンソールでトレースが表示されることを確認
-- [ ] ECS ログが JSON 形式で出力されていることを確認（構造化ログ）
-- [ ] Web UI (CloudFront URL) にブラウザからアクセスできることを確認
-- [ ] Web UI からタスクの一覧・作成・編集・削除・完了切替が動作することを確認
-- [ ] Web UI から添付ファイルのアップロード・ダウンロード・削除が動作すること���確認
-- [ ] CI/CD パイプラインでフロントエンドビルド・デプロイが成功することを確認
+Required deliverables (v6 — 完了済み):
+- [x] `docs/05_deploy/deploy_procedure_v6.md` — デプロイ手順書（v6）
+- [x] `docs/05_deploy/verification_v6.md` — 動作確認記録（v6）
+- [x] `terraform apply` で CloudWatch Dashboard / Alarms / SNS Topic / Web UI S3 / Web UI CloudFront が作成済み
+- [x] CloudWatch Dashboard にメトリクスが表示されることを確認
+- [x] CloudWatch Alarms が作成され、大部分が OK 状態であることを確認
+- [x] X-Ray コンソールでトレースが表示されることを確認
+- [x] ECS ログが JSON 形式で出力されていることを確認（構造化ログ）
+- [x] Web UI (CloudFront URL) にブラウザからアクセスできることを確認
+- [x] Web UI からタスクの一覧・作成・編集・削除・完了切替が動作することを確認
+- [x] Web UI から添付ファイルのアップロード・ダウンロード・削除が動作することを確認
+- [x] CI/CD パイプラインでフロントエンドビルド・デプロイが成功することを確認
 
 ## Review Process
 

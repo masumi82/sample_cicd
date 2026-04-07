@@ -132,7 +132,7 @@ RDS を追加してデータを永続化。本格的な REST API に拡張。
 
 ---
 
-### v6 — Observability + Web UI（開発中）
+### v6 — Observability + Web UI（完了）
 
 本番運用で必須の監視基盤と、ブラウザから操作できる管理画面を追加。
 
