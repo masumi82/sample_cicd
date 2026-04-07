@@ -2,7 +2,12 @@
 
 GitHub Actions + ECS(Fargate) による CI/CD パイプラインの学習プロジェクト。
 FastAPI アプリケーションを AWS 上にコンテナデプロイし、バージョンを重ねながら本番運用に近いインフラを段階的に構築する。
-v1〜v5 完了、v6（Observability + Web UI）開発中。
+
+## Web UI デモ (v6)
+
+![Task Manager Demo](docs/demo.gif)
+
+> タスクの作成 → 完了切替 → フィルタ を React SPA（S3 + CloudFront）から操作。
 
 ---
 
