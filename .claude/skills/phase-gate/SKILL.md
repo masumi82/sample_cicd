@@ -12,8 +12,8 @@ All output must be in Japanese.
 
 ## Phase Definitions
 
-> **Note**: v1〜v6 の成果物を管理する。v1・v2・v3・v4・v5 は完了済み。
-> 引数が `1`〜`5` の場合は v6 のフェーズをチェックする。
+> **Note**: v1〜v7 の成果物を管理する。v1〜v6 は完了済み。
+> 引数が `1`〜`5` の場合は v7 のフェーズをチェックする。
 
 ### Phase 1: Requirements (要件定義)
 Required deliverables (v1 & v2 — 完了済み):
@@ -36,6 +36,10 @@ Required deliverables (v5 — 完了済み):
 Required deliverables (v6 — 完了済み):
 - [x] `docs/01_requirements/requirements_v6.md` — Observability (CloudWatch Dashboard/Alarms, X-Ray, SNS, 構造化ログ) + Web UI (React SPA on S3+CloudFront, CORS, フロントエンド CI/CD) の要件
 - [x] CLAUDE.md に v6 の情報が反映済みであること
+
+Required deliverables (v7):
+- [ ] `docs/01_requirements/requirements_v7.md` — セキュリティ強化 + 認証 (Cognito User Pool, JWT 認証, WAF, HTTPS/カスタムドメイン) の要件
+- [ ] CLAUDE.md に v7 の情報が反映済みであること
 
 ### Phase 2: Design (設計)
 Required deliverables (v1 & v2 — 完了済み):
@@ -68,6 +72,11 @@ Required deliverables (v6 — 完了済み):
 - [x] `docs/02_design/architecture_v6.md` — アーキテクチャ設計（Observability: Dashboard/Alarms/X-Ray/構造化ログ + Web UI: React SPA on S3+CloudFront）
 - [x] `docs/02_design/infrastructure_v6.md` — Terraform リソース設計（monitoring.tf, sns.tf, webui.tf, X-Ray sidecar, IAM 更新）
 - [x] `docs/02_design/cicd_v6.md` — CI/CD パイプライン設計（Node.js セットアップ + フロントエンドビルド・デプロイ）
+
+Required deliverables (v7):
+- [ ] `docs/02_design/architecture_v7.md` — アーキテクチャ設計（Cognito 認証フロー、WAF 配置、JWT 検証）
+- [ ] `docs/02_design/infrastructure_v7.md` — Terraform リソース設計（cognito.tf, waf.tf, ECS 環境変数追加）
+- [ ] `docs/02_design/cicd_v7.md` — CI/CD パイプライン設計（Cognito 設定注入）
 
 ### Phase 3: Implementation (実装)
 Required deliverables (v1 & v2 — 完了済み):
@@ -139,6 +148,25 @@ Required deliverables (v6 — 完了済み):
 - [x] Code passes lint (`ruff check app/ tests/ lambda/`) and Terraform validate
 - [x] Frontend builds successfully (`cd frontend && npm ci && npm run build`)
 
+Required deliverables (v7):
+- [ ] `infra/cognito.tf` — Cognito User Pool + App Client
+- [ ] `infra/waf.tf` — WAF v2 WebACL（マネージドルール 2 つ + レートリミット）
+- [ ] `infra/variables.tf` — v7 変数追加（WAF レートリミット閾値、enable_custom_domain 等）
+- [ ] `infra/outputs.tf` — v7 出力追加（cognito_user_pool_id, cognito_app_client_id, waf_web_acl_arn）
+- [ ] `infra/dev.tfvars` — v7 変数値追加
+- [ ] `infra/prod.tfvars` — v7 変数値追加
+- [ ] `infra/ecs.tf` — COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID 環境変数追加
+- [ ] `infra/webui.tf` — WAF WebACL を CloudFront に関連付け
+- [ ] `app/requirements.txt` — `python-jose[cryptography]` 追加
+- [ ] `app/auth.py` — JWT 認証ミドルウェア（JWKS 検証、Graceful degradation）
+- [ ] `app/main.py` — 認証ミドルウェア適用（公開/保護エンドポイント分離）
+- [ ] `frontend/src/` — ログイン / サインアップ / 確認コード画面追加
+- [ ] `frontend/src/` — 保護ルーティング（PrivateRoute コンポーネント）
+- [ ] `frontend/src/api/client.js` — Authorization ヘッダー自動付与 + 401 ハンドリング
+- [ ] `frontend/package.json` — `amazon-cognito-identity-js` 追加
+- [ ] Code passes lint (`ruff check app/ tests/ lambda/`) and Terraform validate
+- [ ] Frontend builds successfully (`cd frontend && npm ci && npm run build`)
+
 ### Phase 4: Test (テスト)
 Required deliverables (v1 & v2 — 完了済み):
 - [x] `docs/04_test/test_plan.md` — v1 テスト計画書
@@ -165,6 +193,11 @@ Required deliverables (v6 — 完了済み):
 - [x] `docs/04_test/test_plan_v6.md` — テスト計画書（v6）
 - [x] `tests/test_observability.py` — CORS / 構造化ログ / X-Ray graceful degradation テスト（TC-40〜TC-46）
 - [x] v5 までの既存テスト（TC-01〜TC-39, 46 件）が引き続き全件 PASS
+
+Required deliverables (v7):
+- [ ] `docs/04_test/test_plan_v7.md` — テスト計画書（v7）
+- [ ] `tests/test_auth.py` — JWT 認証テスト（認証成功・失敗・トークン期限切れ・公開エンドポイント・Graceful degradation）
+- [ ] v6 までの既存テスト（54 件）が引き続き全件 PASS
 
 ### Phase 5: Deploy (デプロイ)
 Required deliverables (v1 & v2 — 完了済み):
@@ -208,6 +241,17 @@ Required deliverables (v6 — 完了済み):
 - [x] Web UI からタスクの一覧・作成・編集・削除・完了切替が動作することを確認
 - [x] Web UI から添付ファイルのアップロード・ダウンロード・削除が動作することを確認
 - [x] CI/CD パイプラインでフロントエンドビルド・デプロイが成功することを確認
+
+Required deliverables (v7):
+- [ ] `docs/05_deploy/deploy_procedure_v7.md` — デプロイ手順書（v7）
+- [ ] `docs/05_deploy/verification_v7.md` — 動作確認記録（v7）
+- [ ] `terraform apply` で Cognito User Pool / WAF WebACL が作成済み
+- [ ] Web UI にログイン画面が表示されることを確認
+- [ ] サインアップ → メール確認 → ログインのフローが動作することを確認
+- [ ] 未認証状態で API を叩くと 401 が返ることを確認
+- [ ] ログイン後に API を叩くとタスク操作が可能なことを確認
+- [ ] WAF レートリミットが適用されていることを確認（AWS コンソール）
+- [ ] CI/CD パイプラインが成功することを確認
 
 ## Review Process
 

@@ -39,6 +39,10 @@ frontend/dist/
 
 # Screenshots
 scs/
+screenshots/
+
+# Playwright MCP
+.playwright-mcp/
 
 # Demo script artifacts
 scripts/frames/

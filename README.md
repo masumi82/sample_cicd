@@ -3,11 +3,11 @@
 GitHub Actions + ECS(Fargate) による CI/CD パイプラインの学習プロジェクト。
 FastAPI アプリケーションを AWS 上にコンテナデプロイし、バージョンを重ねながら本番運用に近いインフラを段階的に構築する。
 
-## Web UI デモ (v6)
+## Web UI デモ (v6+)
 
 ![Task Manager Demo](docs/demo.gif)
 
-> タスクの作成 → 完了切替 → フィルタ を React SPA（S3 + CloudFront）から操作。
+> タスクの作成 → 完了切替 → フィルタ を React SPA（S3 + CloudFront）から操作。v7 でログイン / サインアップ画面を追加。
 
 ---
 
@@ -22,15 +22,21 @@ graph TD
     end
 
     subgraph InternetAccess["Internet Access"]
-        INET["インターネット"] --> CF_ATT[CloudFront OAC]
-        INET --> CF_UI[CloudFront OAC - v6]
-        INET --> ALB[ALB HTTP :80]
+        INET["インターネット"] --> WAF["WAF WebACL - v7<br>マネージドルール + レートリミット"]
+        WAF --> CF_UI[CloudFront OAC - v6]
+        INET --> CF_ATT[CloudFront OAC]
         CF_ATT --> S3_ATT["S3 添付ファイル配信"]
         CF_UI --> S3_UI["S3 Web UI 静的配信"]
+        CF_UI --> ALB[ALB HTTP :80]
+    end
+
+    subgraph Auth["Authentication - v7"]
+        COGNITO["Cognito User Pool<br>SignUp / SignIn / JWT"]
+        SPA["React SPA"] --> COGNITO
     end
 
     subgraph ECS
-        ALB --> FARGATE["ECS Fargate - FastAPI + X-Ray SDK<br>Auto Scaling: 1-3 タスク"]
+        ALB --> FARGATE["ECS Fargate - FastAPI + JWT auth + X-Ray SDK<br>Auto Scaling: 1-3 タスク"]
         FARGATE <-.-> XRAY_D[X-Ray Daemon sidecar<br>UDP:2000 - v6]
         XRAY_D --> XRAY_S[X-Ray Service]
     end
@@ -57,12 +63,14 @@ graph TD
 ```
 
 - **アプリ**: FastAPI (Python 3.12) によるタスク管理 REST API + ファイル添付機能
+- **認証**: Cognito User Pool + JWT 認証（v7）
+- **WAF**: CloudFront に WebACL 適用（マネージドルール + レートリミット）（v7）
 - **インフラ**: Terraform で AWS リソースをコード管理（Workspace でマルチ環境）
 - **CI/CD**: GitHub Actions で push ごとに自動テスト・自動デプロイ（フロントエンドビルドも含む）
 - **イベント駆動**: SQS + Lambda + EventBridge による非同期処理
 - **ストレージ**: S3 + CloudFront で添付ファイル管理・配信
 - **オブザーバビリティ**: CloudWatch Dashboard/Alarms、X-Ray 分散トレーシング、構造化ログ（v6）
-- **Web UI**: React + Vite SPA を S3 + CloudFront でホスティング（v6）
+- **Web UI**: React + Vite SPA を S3 + CloudFront でホスティング、Cognito 認証画面付き（v6+v7）
 - **リージョン**: ap-northeast-1 (東京)
 
 ---
@@ -165,21 +173,40 @@ RDS を追加してデータを永続化。本格的な REST API に拡張。
 
 ---
 
+### v7 — セキュリティ強化 + 認証（完了）
+
+Cognito 認証と WAF による本番レベルのセキュリティを追加。
+
+**追加機能**
+- Cognito User Pool + App Client（email ログイン、SRP 認証）
+- JWT 認証ミドルウェア（JWKS キャッシュ、Graceful Degradation）
+- API エンドポイント保護（`/tasks*`, `/attachments*` に認証必須）
+- WAF v2 WebACL（AWSManagedRulesCommonRuleSet + KnownBadInputsRuleSet + レートリミット）
+- React ログイン / サインアップ / 確認コード画面
+- PrivateRoute による保護ルーティング
+- CI/CD で Cognito 設定を config.js に動的注入
+
+**学習テーマ**: Cognito, JWT, JWKS, WAF v2, SRP 認証, PrivateRoute, amazon-cognito-identity-js
+
+---
+
 ## API エンドポイント
 
-| メソッド | パス | 説明 |
-|---------|------|------|
-| GET | `/` | Hello World |
-| GET | `/health` | ヘルスチェック（ALB が死活監視） |
-| GET | `/tasks` | タスク一覧 |
-| POST | `/tasks` | タスク作成（→ SQS イベント発行） |
-| GET | `/tasks/{id}` | タスク取得 |
-| PUT | `/tasks/{id}` | タスク更新（完了時 → EventBridge イベント発行） |
-| DELETE | `/tasks/{id}` | タスク削除 |
-| POST | `/tasks/{id}/attachments` | 添付ファイル作成（Presigned URL 返却） |
-| GET | `/tasks/{id}/attachments` | 添付ファイル一覧 |
-| GET | `/tasks/{id}/attachments/{att_id}` | 添付ファイル取得（ダウンロード URL 付き） |
-| DELETE | `/tasks/{id}/attachments/{att_id}` | 添付ファイル削除 |
+| メソッド | パス | 認証 | 説明 |
+|---------|------|------|------|
+| GET | `/` | 不要 | Hello World |
+| GET | `/health` | 不要 | ヘルスチェック（ALB が死活監視） |
+| GET | `/tasks` | **必要** | タスク一覧 |
+| POST | `/tasks` | **必要** | タスク作成（→ SQS イベント発行） |
+| GET | `/tasks/{id}` | **必要** | タスク取得 |
+| PUT | `/tasks/{id}` | **必要** | タスク更新（完了時 → EventBridge イベント発行） |
+| DELETE | `/tasks/{id}` | **必要** | タスク削除 |
+| POST | `/tasks/{id}/attachments` | **必要** | 添付ファイル作成（Presigned URL 返却） |
+| GET | `/tasks/{id}/attachments` | **必要** | 添付ファイル一覧 |
+| GET | `/tasks/{id}/attachments/{att_id}` | **必要** | 添付ファイル取得（ダウンロード URL 付き） |
+| DELETE | `/tasks/{id}/attachments/{att_id}` | **必要** | 添付ファイル削除 |
+
+> v7 で認証が追加。`Authorization: Bearer <JWT>` ヘッダーが必要。`COGNITO_USER_POOL_ID` 未設定時は認証スキップ（Graceful Degradation）。
 
 ---
 
@@ -189,9 +216,10 @@ RDS を追加してデータを永続化。本格的な REST API に拡張。
 sample_cicd/
 ├── app/                        # FastAPI アプリケーション
 │   ├── main.py                 # エントリポイント（X-Ray/CORS/JSONFormatter v6）
+│   ├── auth.py                 # JWT 認証ミドルウェア（Cognito JWKS 検証 v7）
 │   ├── routers/
-│   │   ├── tasks.py            # タスク CRUD エンドポイント
-│   │   └── attachments.py      # 添付ファイル CRUD エンドポイント（v5）
+│   │   ├── tasks.py            # タスク CRUD エンドポイント（認証必須 v7）
+│   │   └── attachments.py      # 添付ファイル CRUD エンドポイント（認証必須 v7）
 │   ├── services/
 │   │   ├── events.py           # SQS/EventBridge イベント発行（v4）
 │   │   └── storage.py          # S3 Presigned URL 生成・オブジェクト操作（v5）
@@ -199,20 +227,20 @@ sample_cicd/
 │   ├── schemas.py              # Pydantic スキーマ（リクエスト/レスポンス）
 │   ├── database.py             # DB 接続・セッション管理
 │   ├── alembic/                # DB マイグレーション
-│   ├── requirements.txt        # 依存ライブラリ（aws-xray-sdk v6）
+│   ├── requirements.txt        # 依存ライブラリ（python-jose v7）
 │   └── Dockerfile              # マルチステージビルド、非rootユーザー
 ├── lambda/                     # Lambda 関数（v4、JSONFormatter v6）
 │   ├── task_created_handler.py   # SQS トリガー：タスク作成イベント処理
 │   ├── task_completed_handler.py # EventBridge トリガー：タスク完了イベント処理
 │   └── task_cleanup_handler.py   # Scheduler トリガー：定期クリーンアップ
-├── frontend/                   # React + Vite SPA（v6）
-│   ├── package.json
+├── frontend/                   # React + Vite SPA（v6+v7）
+│   ├── package.json            # amazon-cognito-identity-js 追加（v7）
 │   ├── vite.config.js
 │   ├── index.html
 │   └── src/
-│       ├── App.jsx             # ルーティング・レイアウト
-│       ├── api.js              # fetch wrapper
-│       ├── config.js           # API URL（CD 時に生成）
+│       ├── App.jsx             # ルーティング・レイアウト（PrivateRoute v7）
+│       ├── api/client.js       # fetch wrapper（Authorization ヘッダー自動付与 v7）
+│       ├── auth/               # 認証画面（Login/Signup/ConfirmSignup/PrivateRoute v7）
 │       └── components/         # TaskList, TaskForm, TaskDetail, Attachment 他
 ├── infra/                      # Terraform（AWS インフラ定義）
 │   ├── main.tf                 # VPC・サブネット・ルーティング
@@ -229,7 +257,9 @@ sample_cicd/
 │   ├── cloudfront.tf           # CloudFront（添付ファイル配信 v5）
 │   ├── monitoring.tf           # CloudWatch Dashboard + Alarms × 12（v6）
 │   ├── sns.tf                  # SNS Topic（アラーム通知基盤 v6）
-│   ├── webui.tf                # Web UI 用 S3 + CloudFront（v6）
+│   ├── webui.tf                # Web UI 用 S3 + CloudFront（WAF 関連付け v7）
+│   ├── cognito.tf              # Cognito User Pool + App Client（v7）
+│   ├── waf.tf                  # WAF v2 WebACL — us-east-1（v7）
 │   ├── ecr.tf                  # ECR リポジトリ
 │   ├── iam.tf                  # IAM ロール・ポリシー（X-Ray 権限 v6）
 │   ├── secrets.tf              # Secrets Manager
@@ -246,13 +276,14 @@ sample_cicd/
 │   ├── test_main.py            # v1 エンドポイントテスト
 │   ├── test_tasks.py           # v2 + v4 タスク CRUD + イベント発行テスト
 │   ├── test_attachments.py     # v5 添付ファイルテスト
-│   └── test_observability.py  # v6 CORS・構造化ログ・X-Ray graceful degradation
+│   ├── test_observability.py  # v6 CORS・構造化ログ・X-Ray graceful degradation
+│   └── test_auth.py           # v7 JWT 認証テスト
 └── docs/
-    ├── 01_requirements/        # 要件定義書（v1〜v6）
+    ├── 01_requirements/        # 要件定義書（v1〜v7）
     ├── 02_design/              # 設計書（アーキテクチャ・API・DB・インフラ・CI/CD）
-    ├── 04_test/                # テスト計画書（v1〜v6）
-    ├── 05_deploy/              # デプロイ手順書・動作確認記録（v1〜v6）
-    └── 06_learning/            # 学習まとめ（v2〜v5）
+    ├── 04_test/                # テスト計画書（v1〜v7）
+    ├── 05_deploy/              # デプロイ手順書・動作確認記録（v1〜v7）
+    └── 06_learning/            # 学習まとめ（v2〜v7）
 ```
 
 ---
@@ -356,7 +387,7 @@ domain_name  = "example.com"
 push to main
   ├── CI ジョブ（全ブランチ・PR）
   │    ├── ruff check app/ tests/ lambda/  # Lint
-  │    ├── pytest tests/ -v                # 54 テスト
+  │    ├── pytest tests/ -v                # 62 テスト
   │    ├── docker build                    # ビルド検証
   │    └── npm ci && npm run build         # フロントエンドビルド検証（v6）
   │
@@ -364,9 +395,9 @@ push to main
        ├── ECR へ push（タグ: <short-SHA>, latest）
        ├── ECS ローリングデプロイ（minimum_healthy_percent: 100% 無停止）
        ├── Lambda コード更新（zip → update-function-code）
-       └── フロントエンドデプロイ（v6）
+       └── フロントエンドデプロイ（v6+v7）
             ├── npm build
-            ├── config.js 生成（CloudFront ドメインを注入）
+            ├── config.js 生成（CloudFront ドメイン + Cognito 設定を注入 v7）
             ├── S3 sync（--delete）
             └── CloudFront キャッシュ無効化
 ```
@@ -444,7 +475,7 @@ cd infra && terraform destroy
 | 5. デプロイ | `docs/05_deploy/` | デプロイ手順書・動作確認記録 |
 | — | `docs/06_learning/` | バージョンごとの学習まとめ |
 
-各バージョンのドキュメントは `_v2`, `_v3`, `_v4`, `_v5`, `_v6` サフィックスで並行管理している。
+各バージョンのドキュメントは `_v2`, `_v3`, `_v4`, `_v5`, `_v6`, `_v7` サフィックスで並行管理している。
 
 ---
 
@@ -479,5 +510,8 @@ cd infra && terraform destroy
 | 監視 | CloudWatch Dashboard / Alarms（v6） |
 | 通知 | Amazon SNS（v6） |
 | 分散トレーシング | AWS X-Ray（v6） |
-| フロントエンド | React 18 + Vite（v6） |
-| フロントエンドホスティング | S3 + CloudFront（SPA ルーティング対応 v6） |
+| 認証 | Amazon Cognito User Pool（v7） |
+| JWT ライブラリ | python-jose[cryptography]（v7） |
+| WAF | AWS WAF v2（マネージドルール + レートリミット v7） |
+| フロントエンド | React 18 + Vite + amazon-cognito-identity-js（v6+v7） |
+| フロントエンドホスティング | S3 + CloudFront（SPA ルーティング対応 v6、WAF 保護 v7） |
