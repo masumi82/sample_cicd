@@ -341,7 +341,7 @@ domain_name  = "example.com"
 push to main
   ├── CI ジョブ（全ブランチ・PR）
   │    ├── ruff check app/ tests/ lambda/  # Lint
-  │    ├── pytest tests/ -v                # 46+ テスト
+  │    ├── pytest tests/ -v                # 54 テスト
   │    ├── docker build                    # ビルド検証
   │    └── npm ci && npm run build         # フロントエンドビルド検証（v6）
   │
@@ -351,7 +351,7 @@ push to main
        ├── Lambda コード更新（zip → update-function-code）
        └── フロントエンドデプロイ（v6）
             ├── npm build
-            ├── config.js 生成（ALB DNS 名を注入）
+            ├── config.js 生成（CloudFront ドメインを注入）
             ├── S3 sync（--delete）
             └── CloudFront キャッシュ無効化
 ```
@@ -448,7 +448,7 @@ cd infra && terraform destroy
 | IaC | Terraform (hashicorp/aws) |
 | CI/CD | GitHub Actions |
 | クラウド | AWS (ap-northeast-1) |
-| コンピュート | ECS Fargate (0.25 vCPU / 512 MB) |
+| コンピュート | ECS Fargate (0.5 vCPU / 1024 MB) |
 | ロードバランサー | ALB |
 | データベース | RDS PostgreSQL 15 (db.t3.micro, Multi-AZ) |
 | メッセージキュー | SQS (+ DLQ) |

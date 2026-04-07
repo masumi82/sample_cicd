@@ -171,10 +171,11 @@ gh secret list
 ```
 
 期待されるシークレット:
-- `AWS_ACCOUNT_ID`
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
-- `AWS_REGION`
+
+> `AWS_REGION` はワークフロー内で `ap-northeast-1` にハードコード済み。
+> ECR レジストリは `amazon-ecr-login` アクションが動的に取得するため `AWS_ACCOUNT_ID` も不要。
 
 ## 5. CI/CD パイプラインの確認
 
@@ -261,9 +262,9 @@ aws cloudwatch describe-alarms \
 git checkout <previous-commit>
 cd frontend && npm ci && npm run build
 
-# config.js を現在の ALB DNS で上書き
-ALB_DNS=$(cd ~/sample_cicd/infra && terraform output -raw alb_dns_name)
-echo "window.APP_CONFIG = { API_URL: 'http://${ALB_DNS}' };" > dist/config.js
+# config.js を現在の CloudFront ドメインで上書き
+CF_DOMAIN=$(cd ~/sample_cicd/infra && terraform output -raw webui_cloudfront_domain_name)
+echo "window.APP_CONFIG = { API_URL: 'https://${CF_DOMAIN}' };" > dist/config.js
 
 aws s3 sync dist/ s3://sample-cicd-dev-webui --delete
 DIST_ID=$(cd ~/sample_cicd/infra && terraform output -raw webui_cloudfront_distribution_id)

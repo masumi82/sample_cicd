@@ -9,7 +9,7 @@ import { mkdirSync, rmSync, existsSync } from "fs";
 import { execSync } from "child_process";
 import path from "path";
 
-const BASE_URL = process.env.DEMO_URL || "https://dXXXXXXXXXXXXX.cloudfront.net";
+const BASE_URL = process.env.DEMO_URL || "http://localhost:5173";
 const OUT_DIR = path.resolve("scripts/frames");
 const GIF_PATH = path.resolve("docs/demo.gif");
 
