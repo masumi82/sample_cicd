@@ -14,17 +14,29 @@ db_name              = "sample_cicd"
 db_port              = 5432
 
 # v3: Auto Scaling
-ecs_min_count      = 2
-ecs_max_count      = 6
+ecs_min_count        = 2
+ecs_max_count        = 6
 ecs_cpu_target_value = 60.0
 
 # v4: Lambda Layer
 psycopg2_layer_arn = "arn:aws:lambda:ap-northeast-1:123456789012:layer:sample-cicd-psycopg2:1"
 
 # v5: Multi-environment settings
-db_multi_az             = true
-log_retention_days      = 30
+db_multi_az               = true
+log_retention_days        = 30
 lambda_log_retention_days = 14
-cloudfront_price_class  = "PriceClass_200"
-cors_allowed_origins    = ["https://*.example.com"]  # TODO: replace with actual domain
-s3_versioning_enabled   = true
+cloudfront_price_class    = "PriceClass_200"
+cors_allowed_origins      = ["https://*.example.com"] # TODO: replace with actual domain
+s3_versioning_enabled     = true
+
+# v6: Observability + Web UI
+alarm_email                      = ""
+alarm_alb_5xx_threshold          = 5
+alarm_alb_latency_threshold      = 1.0
+alarm_ecs_cpu_threshold          = 80
+alarm_ecs_memory_threshold       = 80
+alarm_rds_cpu_threshold          = 80
+alarm_rds_free_storage_threshold = 5000000000 # 5 GB
+alarm_rds_connections_threshold  = 100
+alarm_lambda_errors_threshold    = 3
+alarm_lambda_duration_threshold  = 5000 # 5 seconds

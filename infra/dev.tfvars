@@ -3,8 +3,8 @@ project_name   = "sample-cicd"
 aws_region     = "ap-northeast-1"
 vpc_cidr       = "10.0.0.0/16"
 app_port       = 8000
-fargate_cpu    = 256
-fargate_memory = 512
+fargate_cpu    = 512  # v6: increased for X-Ray sidecar (was 256)
+fargate_memory = 1024 # v6: increased for X-Ray sidecar (was 512)
 desired_count  = 1
 
 # v2: RDS
@@ -17,9 +17,21 @@ db_port              = 5432
 psycopg2_layer_arn = "arn:aws:lambda:ap-northeast-1:123456789012:layer:sample-cicd-psycopg2:2"
 
 # v5: Multi-environment settings
-db_multi_az             = false
-log_retention_days      = 7
+db_multi_az               = false
+log_retention_days        = 7
 lambda_log_retention_days = 7
-cloudfront_price_class  = "PriceClass_100"
-cors_allowed_origins    = ["*"]        # dev: all origins allowed
-s3_versioning_enabled   = false
+cloudfront_price_class    = "PriceClass_100"
+cors_allowed_origins      = ["*"] # dev: all origins allowed
+s3_versioning_enabled     = false
+
+# v6: Observability + Web UI
+alarm_email                      = ""
+alarm_alb_5xx_threshold          = 10
+alarm_alb_latency_threshold      = 3.0
+alarm_ecs_cpu_threshold          = 90
+alarm_ecs_memory_threshold       = 90
+alarm_rds_cpu_threshold          = 90
+alarm_rds_free_storage_threshold = 2000000000 # 2 GB
+alarm_rds_connections_threshold  = 50
+alarm_lambda_errors_threshold    = 5
+alarm_lambda_duration_threshold  = 10000 # 10 seconds

@@ -50,8 +50,8 @@ resource "aws_route53_record" "acm_validation" {
 
 # ACM 証明書の DNS 検証完了を待機する
 resource "aws_acm_certificate_validation" "app" {
-  count           = var.enable_https ? 1 : 0
-  certificate_arn = aws_acm_certificate.app[0].arn
+  count                   = var.enable_https ? 1 : 0
+  certificate_arn         = aws_acm_certificate.app[0].arn
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }
 

@@ -37,3 +37,15 @@ resource "aws_cloudwatch_log_group" "lambda_task_cleanup" {
     Project = var.project_name
   }
 }
+
+# v6: X-Ray daemon sidecar log group
+resource "aws_cloudwatch_log_group" "xray" {
+  name              = "/ecs/${local.prefix}-xray"
+  retention_in_days = var.log_retention_days
+
+  tags = {
+    Name        = "${local.prefix}-xray-logs"
+    Project     = var.project_name
+    Environment = local.env
+  }
+}

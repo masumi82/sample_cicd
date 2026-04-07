@@ -50,6 +50,14 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "CLOUDFRONT_DOMAIN_NAME"
           value = aws_cloudfront_distribution.attachments.domain_name
+        },
+        {
+          name  = "ENABLE_XRAY"
+          value = "true"
+        },
+        {
+          name  = "CORS_ALLOWED_ORIGINS"
+          value = "https://${aws_cloudfront_distribution.webui.domain_name}"
         }
       ]
 
@@ -82,6 +90,27 @@ resource "aws_ecs_task_definition" "app" {
           "awslogs-group"         = aws_cloudwatch_log_group.app.name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "app"
+        }
+      }
+    },
+    {
+      name      = "xray-daemon"
+      image     = "amazon/aws-xray-daemon:latest"
+      essential = false
+
+      portMappings = [
+        {
+          containerPort = 2000
+          protocol      = "udp"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.xray.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "xray"
         }
       }
     }

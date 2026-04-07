@@ -86,6 +86,16 @@ resource "aws_iam_role_policy" "ecs_task_events" {
           "s3:DeleteObject"
         ]
         Resource = "${aws_s3_bucket.attachments.arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+          "xray:GetSamplingRules",
+          "xray:GetSamplingTargets"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -138,6 +148,16 @@ resource "aws_iam_role_policy" "lambda_task_created" {
           "logs:PutLogEvents"
         ]
         Resource = "${aws_cloudwatch_log_group.lambda_task_created.arn}:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+          "xray:GetSamplingRules",
+          "xray:GetSamplingTargets"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -179,6 +199,16 @@ resource "aws_iam_role_policy" "lambda_task_completed" {
           "logs:PutLogEvents"
         ]
         Resource = "${aws_cloudwatch_log_group.lambda_task_completed.arn}:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+          "xray:GetSamplingRules",
+          "xray:GetSamplingTargets"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -233,6 +263,16 @@ resource "aws_iam_role_policy" "lambda_task_cleanup" {
           "ec2:CreateNetworkInterface",
           "ec2:DescribeNetworkInterfaces",
           "ec2:DeleteNetworkInterface"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+          "xray:GetSamplingRules",
+          "xray:GetSamplingTargets"
         ]
         Resource = "*"
       }

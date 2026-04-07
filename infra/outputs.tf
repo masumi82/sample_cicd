@@ -67,3 +67,30 @@ output "cloudfront_distribution_id" {
   description = "ID of the CloudFront distribution"
   value       = aws_cloudfront_distribution.attachments.id
 }
+
+# --- v6: Observability + Web UI outputs ---
+
+output "dashboard_url" {
+  description = "URL of the CloudWatch Dashboard"
+  value       = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${aws_cloudwatch_dashboard.main.dashboard_name}"
+}
+
+output "sns_topic_arn" {
+  description = "ARN of the alarm notification SNS topic"
+  value       = aws_sns_topic.alarm_notifications.arn
+}
+
+output "webui_bucket_name" {
+  description = "Name of the Web UI S3 bucket"
+  value       = aws_s3_bucket.webui.bucket
+}
+
+output "webui_cloudfront_domain_name" {
+  description = "Domain name of the Web UI CloudFront distribution"
+  value       = aws_cloudfront_distribution.webui.domain_name
+}
+
+output "webui_cloudfront_distribution_id" {
+  description = "ID of the Web UI CloudFront distribution"
+  value       = aws_cloudfront_distribution.webui.id
+}

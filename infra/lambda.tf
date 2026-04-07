@@ -30,6 +30,10 @@ resource "aws_lambda_function" "task_created_handler" {
   timeout          = 30
   memory_size      = 128
 
+  tracing_config {
+    mode = "Active"
+  }
+
   depends_on = [aws_cloudwatch_log_group.lambda_task_created]
 
   tags = {
@@ -49,6 +53,10 @@ resource "aws_lambda_function" "task_completed_handler" {
   source_code_hash = data.archive_file.task_completed_handler.output_base64sha256
   timeout          = 30
   memory_size      = 128
+
+  tracing_config {
+    mode = "Active"
+  }
 
   depends_on = [aws_cloudwatch_log_group.lambda_task_completed]
 
@@ -112,6 +120,10 @@ resource "aws_lambda_function" "task_cleanup_handler" {
   timeout          = 60
   memory_size      = 256
   layers           = [var.psycopg2_layer_arn]
+
+  tracing_config {
+    mode = "Active"
+  }
 
   vpc_config {
     subnet_ids         = [aws_subnet.private_1.id, aws_subnet.private_2.id]

@@ -27,3 +27,7 @@ docs/06_learning/
 
 # Lambda build artifacts
 lambda/*.zip
+
+# Node.js / Frontend
+node_modules/
+frontend/dist/

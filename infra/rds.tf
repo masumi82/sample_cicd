@@ -29,9 +29,9 @@ resource "aws_db_instance" "main" {
   multi_az            = var.db_multi_az
   publicly_accessible = false
 
-  skip_final_snapshot    = true
+  skip_final_snapshot     = true
   backup_retention_period = 0
-  deletion_protection    = false
+  deletion_protection     = false
 
   tags = {
     Name = "${local.prefix}-rds"

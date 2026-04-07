@@ -154,3 +154,65 @@ variable "s3_versioning_enabled" {
   type        = bool
   default     = false
 }
+
+# --- v6: Observability + Web UI ---
+
+variable "alarm_email" {
+  description = "Email address for alarm notifications (empty = no subscription)"
+  type        = string
+  default     = ""
+}
+
+variable "alarm_alb_5xx_threshold" {
+  description = "Threshold for ALB 5xx error count alarm"
+  type        = number
+  default     = 10
+}
+
+variable "alarm_alb_latency_threshold" {
+  description = "Threshold for ALB response time alarm (seconds)"
+  type        = number
+  default     = 3.0
+}
+
+variable "alarm_ecs_cpu_threshold" {
+  description = "Threshold for ECS CPU utilization alarm (%)"
+  type        = number
+  default     = 90
+}
+
+variable "alarm_ecs_memory_threshold" {
+  description = "Threshold for ECS memory utilization alarm (%)"
+  type        = number
+  default     = 90
+}
+
+variable "alarm_rds_cpu_threshold" {
+  description = "Threshold for RDS CPU utilization alarm (%)"
+  type        = number
+  default     = 90
+}
+
+variable "alarm_rds_free_storage_threshold" {
+  description = "Threshold for RDS free storage alarm (bytes, default 2GB)"
+  type        = number
+  default     = 2000000000
+}
+
+variable "alarm_rds_connections_threshold" {
+  description = "Threshold for RDS connection count alarm"
+  type        = number
+  default     = 50
+}
+
+variable "alarm_lambda_errors_threshold" {
+  description = "Threshold for Lambda error count alarm"
+  type        = number
+  default     = 5
+}
+
+variable "alarm_lambda_duration_threshold" {
+  description = "Threshold for Lambda duration alarm (milliseconds)"
+  type        = number
+  default     = 10000
+}
