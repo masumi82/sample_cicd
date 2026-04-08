@@ -63,6 +63,28 @@ jobs:
           container-name: app
           image: ${{ steps.build-image.outputs.image }}
 
+      - name: Generate appspec for CodeDeploy
+        run: |
+          cat > appspec.json << 'EOFSPEC'
+          {
+            "version": 0.0,
+            "Resources": [
+              {
+                "TargetService": {
+                  "Type": "AWS::ECS::Service",
+                  "Properties": {
+                    "TaskDefinition": "<TASK_DEFINITION>",
+                    "LoadBalancerInfo": {
+                      "ContainerName": "app",
+                      "ContainerPort": 8000
+                    }
+                  }
+                }
+              }
+            ]
+          }
+          EOFSPEC
+
       - name: Deploy Amazon ECS task definition (CodeDeploy B/G)
         uses: aws-actions/amazon-ecs-deploy-task-definition@fc8fc60f3a60ffd500fcb13b209c59d221ac8c8c # v2
         with:
@@ -70,16 +92,7 @@ jobs:
           service: sample-cicd-${{ env.DEPLOY_ENV }}
           cluster: sample-cicd-${{ env.DEPLOY_ENV }}
           wait-for-service-stability: true
-          codedeploy-appspec: |
-            version: 0.0
-            Resources:
-              - TargetService:
-                  Type: AWS::ECS::Service
-                  Properties:
-                    TaskDefinition: <TASK_DEFINITION>
-                    LoadBalancerInfo:
-                      ContainerName: "app"
-                      ContainerPort: 8000
+          codedeploy-appspec: appspec.json
           codedeploy-application: sample-cicd-${{ env.DEPLOY_ENV }}
           codedeploy-deployment-group: sample-cicd-${{ env.DEPLOY_ENV }}-dg
 
