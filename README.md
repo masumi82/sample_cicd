@@ -110,14 +110,13 @@ RDS を追加してデータを永続化。本格的な REST API に拡張。
 
 ---
 
-### v3 — ECS Auto Scaling + RDS Multi-AZ + HTTPS 準備
+### v3 — ECS Auto Scaling + RDS Multi-AZ
 
 負荷に応じてタスク数を自動調整。DB の高可用性を確保。
 
 **追加機能**
 - ECS Auto Scaling（CPU 70% を目標に 1〜3 タスクで自動増減）
 - RDS Multi-AZ（スタンバイへの自動フェイルオーバー）
-- HTTPS 化コード（`enable_https` 変数で ON/OFF、デフォルト無効）
 
 **学習テーマ**: Application Auto Scaling, Target Tracking Policy, CloudWatch Alarm, RDS Multi-AZ, Terraform `count` / `dynamic`
 
@@ -303,12 +302,12 @@ sample_cicd/
 │   ├── cognito.tf              # Cognito User Pool + App Client（v7）
 │   ├── waf.tf                  # WAF v2 WebACL — us-east-1（v7）
 │   ├── ecr.tf                  # ECR リポジトリ
-│   ├── iam.tf                  # IAM ロール・ポリシー（X-Ray 権限 v6）
+│   ├── iam.tf                  # IAM ロール・ポリシー（CodeDeploy ロール v9）
 │   ├── secrets.tf              # Secrets Manager
 │   ├── security_groups.tf      # セキュリティグループ
 │   ├── logs.tf                 # CloudWatch Logs（X-Ray daemon ログ v6）
-│   ├── variables.tf            # 変数定義（カスタムドメイン設定 v8）
-│   ├── outputs.tf              # 出力値（app_url・custom_domain_url v8）
+│   ├── variables.tf            # 変数定義（v9: github_repo, codedeploy 設定）
+│   ├── outputs.tf              # 出力値（app_url, custom_domain_url）
 │   ├── dev.tfvars              # dev 環境設定値
 │   └── prod.tfvars             # prod 環境設定値
 ├── .github/workflows/
@@ -322,11 +321,11 @@ sample_cicd/
 │   ├── test_observability.py  # v6 CORS・構造化ログ・X-Ray graceful degradation
 │   └── test_auth.py           # v7 JWT 認証テスト
 └── docs/
-    ├── 01_requirements/        # 要件定義書（v1〜v8）
+    ├── 01_requirements/        # 要件定義書（v1〜v9）
     ├── 02_design/              # 設計書（アーキテクチャ・API・DB・インフラ・CI/CD）
-    ├── 04_test/                # テスト計画書（v1〜v8）
-    ├── 05_deploy/              # デプロイ手順書・動作確認記録（v1〜v8）
-    └── 06_learning/            # 学習まとめ（v2〜v7）
+    ├── 04_test/                # テスト計画書（v1〜v9）
+    ├── 05_deploy/              # デプロイ手順書・動作確認記録（v1〜v9）
+    └── 06_learning/            # 学習まとめ（v1〜v9）
 ```
 
 ---
@@ -416,14 +415,6 @@ terraform plan -var-file=prod.tfvars
 # リソース名は自動で sample-cicd-{env}-* に統一
 ```
 
-**HTTPS 有効化（将来）**
-
-```bash
-# terraform.tfvars に追記するだけで有効化
-enable_https = true
-domain_name  = "example.com"
-```
-
 ### CI/CD（v9: ci.yml + cd.yml）
 
 ```
@@ -457,7 +448,7 @@ pip install -r app/requirements.txt
 pip install ruff pytest httpx
 
 # Lint
-ruff check app/ tests/
+ruff check app/ tests/ lambda/
 
 # テスト
 DATABASE_URL=sqlite:// pytest tests/ -v
@@ -475,35 +466,37 @@ docker run -p 8000:8000 sample-cicd:dev
 ## AWS デプロイ
 
 ```bash
-# インフラ構築（v5: Workspace でマルチ環境）
+# インフラ構築（Workspace でマルチ環境）
 cd infra
 terraform init
 terraform workspace select dev    # または prod
 terraform plan -var-file=dev.tfvars
 terraform apply -var-file=dev.tfvars
 
-# ECR へ手動プッシュ（初回のみ）
-aws ecr get-login-password --region ap-northeast-1 | \
-  docker login --username AWS --password-stdin <ECR_URL>
-docker build -t sample-cicd:latest -f app/Dockerfile .
-docker tag sample-cicd:latest <ECR_URL>:latest
-docker push <ECR_URL>:latest
-
-# 以降は main ブランチへの push で自動デプロイ
+# 以降は main ブランチへの push で自動デプロイ（OIDC 認証 + CodeDeploy B/G）
+# CI: lint → test → build → Trivy → tfsec → terraform plan
+# CD: ECR push → CodeDeploy B/G → Lambda → Frontend → terraform apply
 ```
 
 **クリーンアップ（学習後）**
 
 ```bash
-# ECR イメージを先に削除してから destroy
-aws ecr batch-delete-image --repository-name sample-cicd \
-  --image-ids "$(aws ecr list-images --repository-name sample-cicd \
-  --query 'imageIds[*]' --output json)" --region ap-northeast-1
+ENV=dev
 
-cd infra && terraform destroy
+# S3 / ECR を空にしてから destroy
+aws ecr batch-delete-image --repository-name sample-cicd-$ENV \
+  --image-ids "$(aws ecr list-images --repository-name sample-cicd-$ENV \
+  --query 'imageIds[*]' --output json)" --region ap-northeast-1
+aws s3 rm s3://sample-cicd-$ENV-webui --recursive
+aws s3 rm s3://sample-cicd-$ENV-attachments --recursive
+
+cd infra
+terraform workspace select $ENV
+terraform destroy -var-file=$ENV.tfvars
 ```
 
-> **コスト目安**: 起動中は約 $2.50〜3.00/日（RDS Multi-AZ が主なコスト）
+> **コスト目安**: 起動中は約 $2.50〜3.00/日（RDS が主なコスト）
+> Bootstrap リソース（S3 tfstate, DynamoDB tflock）と Route 53 ドメインは削除しない。
 
 ---
 
@@ -558,7 +551,7 @@ cd infra && terraform destroy
 | 認証 | Amazon Cognito User Pool（v7） |
 | JWT ライブラリ | python-jose[cryptography]（v7） |
 | WAF | AWS WAF v2（マネージドルール + レートリミット v7） |
-| フロントエンド | React 18 + Vite + amazon-cognito-identity-js（v6+v7） |
+| フロントエンド | React 19 + Vite + amazon-cognito-identity-js（v6+v7） |
 | DNS 管理 | Route 53 Hosted Zone（v8） |
 | SSL/TLS 証明書 | ACM ワイルドカード証明書（v8） |
 | Terraform State | S3 + DynamoDB Lock（Remote State v8） |
