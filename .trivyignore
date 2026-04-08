@@ -1,0 +1,4 @@
+# Base image vulnerabilities (python:3.12-slim) — no fix available
+CVE-2025-69720  # ncurses buffer overflow — no fixed version
+CVE-2026-29111  # systemd arbitrary code execution — no fixed version
+CVE-2024-23342  # python-ecdsa Minerva attack — no fixed version (transitive dep via python-jose)
