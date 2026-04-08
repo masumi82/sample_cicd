@@ -160,6 +160,11 @@ jobs:
     needs: terraform-plan
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -183,7 +188,10 @@ jobs:
             --out-file /tmp/infracost.json
 
       - name: Post Infracost comment
-        uses: infracost/actions/comment@b39c65483b3b14b930f689365cd9009289c63fa4
-        with:
-          path: /tmp/infracost.json
-          behavior: update
+        run: |
+          infracost comment github \
+            --path /tmp/infracost.json \
+            --repo ${{ github.repository }} \
+            --pull-request ${{ github.event.pull_request.number }} \
+            --github-token ${{ github.token }} \
+            --behavior update
