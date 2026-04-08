@@ -10,6 +10,7 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.models import Attachment, Task
 from app.schemas import TaskCreate, TaskResponse, TaskUpdate
+from app.services.cache import cache_delete, cache_get, cache_set
 from app.services.events import publish_task_completed, publish_task_created
 from app.services.storage import delete_object
 
@@ -17,9 +18,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+CACHE_TTL_LIST = int(os.environ.get("CACHE_TTL_LIST", "300"))
+CACHE_TTL_DETAIL = int(os.environ.get("CACHE_TTL_DETAIL", "600"))
+
 
 @router.get("", response_model=list[TaskResponse])
-def list_tasks(db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)) -> list[Task]:
+def list_tasks(db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)):
     """Return all tasks.
 
     Args:
@@ -28,7 +32,13 @@ def list_tasks(db: Session = Depends(get_db), _user: dict | None = Depends(get_c
     Returns:
         List of all tasks.
     """
-    return db.query(Task).all()
+    cached = cache_get("tasks:list")
+    if cached is not None:
+        return cached
+
+    tasks = db.query(Task).all()
+    cache_set("tasks:list", [TaskResponse.model_validate(t).model_dump() for t in tasks], ttl=CACHE_TTL_LIST)
+    return tasks
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
@@ -47,11 +57,12 @@ def create_task(task_in: TaskCreate, db: Session = Depends(get_db), _user: dict 
     db.commit()
     db.refresh(task)
     publish_task_created(task.id, task.title)
+    cache_delete("tasks:list")
     return task
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_task(task_id: int, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)) -> Task:
+def get_task(task_id: int, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)):
     """Get a single task by ID.
 
     Args:
@@ -64,9 +75,14 @@ def get_task(task_id: int, db: Session = Depends(get_db), _user: dict | None = D
     Raises:
         HTTPException: If task not found.
     """
+    cached = cache_get(f"tasks:{task_id}")
+    if cached is not None:
+        return cached
+
     task = db.query(Task).filter(Task.id == task_id).first()
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
+    cache_set(f"tasks:{task_id}", TaskResponse.model_validate(task).model_dump(), ttl=CACHE_TTL_DETAIL)
     return task
 
 
@@ -102,6 +118,7 @@ def update_task(
     if task.completed and not was_completed:
         publish_task_completed(task.id, task.title)
 
+    cache_delete("tasks:list", f"tasks:{task_id}")
     return task
 
 
@@ -129,3 +146,4 @@ def delete_task(task_id: int, db: Session = Depends(get_db), _user: dict | None 
 
     db.delete(task)
     db.commit()
+    cache_delete("tasks:list", f"tasks:{task_id}")

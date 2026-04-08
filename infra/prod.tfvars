@@ -53,3 +53,13 @@ hosted_zone_id       = "Z0XXXXXXXXXXXXXXXXXX"
 github_repo                = "masumi82/sample_cicd"
 codedeploy_traffic_routing = "AllAtOnce"
 enable_test_listener       = false
+
+# v10: API Gateway + ElastiCache
+redis_node_type            = "cache.t3.micro"
+apigw_cache_ttl            = 300
+apigw_throttle_rate_limit  = 100
+apigw_throttle_burst_limit = 200
+apigw_quota_limit          = 50000
+apigw_quota_period         = "DAY"
+app_cache_ttl_list         = 300
+app_cache_ttl_detail       = 600

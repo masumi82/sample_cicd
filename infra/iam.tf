@@ -263,6 +263,35 @@ resource "aws_iam_role_policy_attachment" "codedeploy_ecs" {
   policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
 }
 
+# --- v10: API Gateway CloudWatch Logging Role ---
+
+data "aws_iam_policy_document" "apigateway_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["apigateway.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "apigateway_cloudwatch" {
+  name               = "${local.prefix}-apigw-cloudwatch"
+  assume_role_policy = data.aws_iam_policy_document.apigateway_assume_role.json
+
+  tags = {
+    Name        = "${local.prefix}-apigw-cloudwatch"
+    Project     = var.project_name
+    Environment = local.env
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "apigateway_cloudwatch" {
+  role       = aws_iam_role.apigateway_cloudwatch.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+}
+
 resource "aws_iam_role_policy" "lambda_task_cleanup" {
   name = "${local.prefix}-lambda-task-cleanup-policy"
   role = aws_iam_role.lambda_task_cleanup.id

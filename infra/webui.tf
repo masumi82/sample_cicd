@@ -68,23 +68,29 @@ resource "aws_cloudfront_distribution" "webui" {
     origin_access_control_id = aws_cloudfront_origin_access_control.webui.id
   }
 
-  # Origin 2: ALB (API proxy)
+  # Origin 2: API Gateway (API proxy) — v10: changed from ALB to API Gateway
   origin {
-    domain_name = aws_lb.main.dns_name
-    origin_id   = "alb-api"
+    domain_name = "${aws_api_gateway_rest_api.main.id}.execute-api.${var.aws_region}.amazonaws.com"
+    origin_id   = "apigw-api"
+    origin_path = "/${aws_api_gateway_stage.main.stage_name}"
 
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "http-only"
+      origin_protocol_policy = "https-only"
       origin_ssl_protocols   = ["TLSv1.2"]
+    }
+
+    custom_header {
+      name  = "x-api-key"
+      value = aws_api_gateway_api_key.main.value
     }
   }
 
-  # API behavior: /tasks* → ALB (no caching, all methods)
+  # API behavior: /tasks* → API Gateway (no CloudFront caching, API GW handles cache)
   ordered_cache_behavior {
     path_pattern     = "/tasks*"
-    target_origin_id = "alb-api"
+    target_origin_id = "apigw-api"
 
     allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods         = ["GET", "HEAD"]

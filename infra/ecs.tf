@@ -66,6 +66,18 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "COGNITO_APP_CLIENT_ID"
           value = aws_cognito_user_pool_client.spa.id
+        },
+        {
+          name  = "REDIS_URL"
+          value = "redis://${aws_elasticache_cluster.main.cache_nodes[0].address}:${aws_elasticache_cluster.main.cache_nodes[0].port}"
+        },
+        {
+          name  = "CACHE_TTL_LIST"
+          value = tostring(var.app_cache_ttl_list)
+        },
+        {
+          name  = "CACHE_TTL_DETAIL"
+          value = tostring(var.app_cache_ttl_detail)
         }
       ]
 

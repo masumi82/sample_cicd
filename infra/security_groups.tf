@@ -85,3 +85,33 @@ resource "aws_security_group" "rds" {
     Name = "${local.prefix}-rds-sg"
   }
 }
+
+# --- v10: Redis Security Group ---
+
+resource "aws_security_group" "redis" {
+  name        = "${local.prefix}-redis-sg"
+  description = "Security group for ElastiCache Redis"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description     = "Redis from ECS tasks"
+    from_port       = var.redis_port
+    to_port         = var.redis_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_tasks.id]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "${local.prefix}-redis-sg"
+    Project     = var.project_name
+    Environment = local.env
+  }
+}

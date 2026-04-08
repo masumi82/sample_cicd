@@ -27,12 +27,15 @@ All output must be in Japanese.
 | v6 | [x] | [x] | [x] | [x] | [x] |
 | v7 | [x] | [x] | [x] | [x] | [x] |
 | v8 | [x] | [x] | [x] | [x] | [x] |
+| v9 | [x] | [x] | [x] | [x] | [x] |
 
-### 開発中: v9 — CI/CD 完全自動化 + セキュリティスキャン
+### 開発中: v10 — API Gateway + ElastiCache Redis + レート制限
 
-v9 固有の成果物（テンプレートに加えて確認）:
-- Phase 3: `infra/codedeploy.tf`, OIDC provider, 2nd TG, CI/CD ワークフロー分割 (ci.yml + cd.yml)
-- Phase 5: CodeDeploy B/G 動作確認, OIDC 認証確認, Trivy/tfsec スキャン結果, terraform plan PR コメント, Infracost PR コメント
+v10 固有の成果物（テンプレートに加えて確認）:
+- Phase 2: `infra/apigateway.tf`, `infra/elasticache.tf` の設計
+- Phase 3: `infra/apigateway.tf` (REST API, Usage Plan, API Key, ステージキャッシュ), `infra/elasticache.tf` (Redis クラスタ, サブネットグループ), `app/services/cache.py` (Redis キャッシュサービス), `app/routers/tasks.py` (cache-aside パターン統合), `infra/webui.tf` (Origin を ALB → API Gateway に変更), `infra/monitoring.tf` (API GW + Redis ダッシュボード・アラーム追加)
+- Phase 4: `tests/test_cache.py` (キャッシュ hit/miss, invalidation, graceful degradation)
+- Phase 5: API Gateway invoke URL 経由の動作確認, Usage Plan (API キーなし → 403), スロットリング (429), Redis キャッシュ hit/miss メトリクス確認
 
 ### 各フェーズの必須成果物パターン（新バージョン用テンプレート）
 

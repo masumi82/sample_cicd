@@ -123,3 +123,21 @@ output "app_url" {
   description = "Application URL (custom domain or CloudFront domain)"
   value       = var.enable_custom_domain ? "https://${var.custom_domain_name}" : "https://${aws_cloudfront_distribution.webui.domain_name}"
 }
+
+# --- v10: API Gateway + ElastiCache outputs ---
+
+output "api_gateway_invoke_url" {
+  description = "Invoke URL of the API Gateway"
+  value       = aws_api_gateway_stage.main.invoke_url
+}
+
+output "api_gateway_api_key" {
+  description = "API Gateway API key value"
+  value       = aws_api_gateway_api_key.main.value
+  sensitive   = true
+}
+
+output "redis_endpoint" {
+  description = "ElastiCache Redis endpoint"
+  value       = aws_elasticache_cluster.main.cache_nodes[0].address
+}
