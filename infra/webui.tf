@@ -58,6 +58,9 @@ resource "aws_cloudfront_distribution" "webui" {
   comment             = "${local.prefix} webui CDN"
   web_acl_id          = aws_wafv2_web_acl.cloudfront.arn
 
+  # v8: Custom domain
+  aliases = var.enable_custom_domain ? [var.custom_domain_name] : []
+
   # Origin 1: S3 (static assets)
   origin {
     domain_name              = aws_s3_bucket.webui.bucket_regional_domain_name
@@ -123,8 +126,21 @@ resource "aws_cloudfront_distribution" "webui" {
     }
   }
 
-  viewer_certificate {
-    cloudfront_default_certificate = true
+  # v8: Switch viewer_certificate based on custom domain
+  dynamic "viewer_certificate" {
+    for_each = var.enable_custom_domain ? [] : [1]
+    content {
+      cloudfront_default_certificate = true
+    }
+  }
+
+  dynamic "viewer_certificate" {
+    for_each = var.enable_custom_domain ? [1] : []
+    content {
+      acm_certificate_arn      = aws_acm_certificate_validation.cloudfront[0].certificate_arn
+      ssl_support_method       = "sni-only"
+      minimum_protocol_version = "TLSv1.2_2021"
+    }
   }
 
   tags = {

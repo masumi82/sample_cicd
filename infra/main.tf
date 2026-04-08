@@ -1,4 +1,13 @@
 terraform {
+  # v8: Remote State
+  backend "s3" {
+    bucket         = "sample-cicd-tfstate"
+    key            = "terraform.tfstate"
+    region         = "ap-northeast-1"
+    dynamodb_table = "sample-cicd-tflock"
+    encrypt        = true
+  }
+
   required_version = ">= 1.0"
 
   required_providers {

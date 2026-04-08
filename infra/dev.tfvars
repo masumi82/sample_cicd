@@ -37,7 +37,9 @@ alarm_lambda_errors_threshold    = 5
 alarm_lambda_duration_threshold  = 10000 # 10 seconds
 
 # v7: WAF + Auth
-waf_rate_limit       = 2000
-enable_custom_domain = false
-custom_domain_name   = ""
-hosted_zone_id       = ""
+waf_rate_limit = 2000
+
+# v8: Custom Domain + HTTPS
+enable_custom_domain = true
+custom_domain_name   = "dev.sample-cicd.click"
+hosted_zone_id       = "Z0XXXXXXXXXXXXXXXXXX"

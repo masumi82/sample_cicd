@@ -119,9 +119,15 @@ jobs:
 
       - name: Configure App
         run: |
-          WEBUI_CF_DOMAIN=$(aws cloudfront list-distributions \
-            --query "DistributionList.Items[?Comment=='sample-cicd-${{ env.DEPLOY_ENV }} webui CDN'].DomainName" \
-            --output text)
+          # v8: Use custom domain if configured, fallback to CloudFront domain
+          CUSTOM_DOMAIN="${{ vars.CUSTOM_DOMAIN_NAME }}"
+          if [ -n "${CUSTOM_DOMAIN}" ]; then
+            APP_DOMAIN="${CUSTOM_DOMAIN}"
+          else
+            APP_DOMAIN=$(aws cloudfront list-distributions \
+              --query "DistributionList.Items[?Comment=='sample-cicd-${{ env.DEPLOY_ENV }} webui CDN'].DomainName" \
+              --output text)
+          fi
           COGNITO_POOL_ID=$(aws cognito-idp list-user-pools --max-results 10 \
             --query "UserPools[?Name=='sample-cicd-${{ env.DEPLOY_ENV }}-users'].Id" \
             --output text)
@@ -131,7 +137,7 @@ jobs:
             --output text)
           cat > frontend/dist/config.js << EOFCFG
           window.APP_CONFIG = {
-            API_URL: 'https://${WEBUI_CF_DOMAIN}',
+            API_URL: 'https://${APP_DOMAIN}',
             COGNITO_USER_POOL_ID: '${COGNITO_POOL_ID}',
             COGNITO_APP_CLIENT_ID: '${COGNITO_CLIENT_ID}'
           };

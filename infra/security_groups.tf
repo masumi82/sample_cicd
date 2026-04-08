@@ -12,16 +12,7 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  dynamic "ingress" {
-    for_each = var.enable_https ? [443] : []
-    content {
-      description = "HTTPS from anywhere"
-      from_port   = ingress.value
-      to_port     = ingress.value
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
+  # ALB HTTPS ingress removed in v8: CloudFront terminates TLS, ALB receives HTTP only
 
   egress {
     description = "Allow all outbound"

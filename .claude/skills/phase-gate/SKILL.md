@@ -12,8 +12,8 @@ All output must be in Japanese.
 
 ## Phase Definitions
 
-> **Note**: v1〜v7 の成果物を管理する。v1〜v6 は完了済み。
-> 引数が `1`〜`5` の場合は v7 のフェーズをチェックする。
+> **Note**: v1〜v8 の成果物を管理する。v1〜v7 は完了済み。
+> 引数が `1`〜`5` の場合は v8 のフェーズをチェックする。
 
 ### Phase 1: Requirements (要件定義)
 Required deliverables (v1 & v2 — 完了済み):

@@ -26,7 +26,7 @@ db_multi_az               = true
 log_retention_days        = 30
 lambda_log_retention_days = 14
 cloudfront_price_class    = "PriceClass_200"
-cors_allowed_origins      = ["https://*.example.com"] # TODO: replace with actual domain
+cors_allowed_origins      = ["https://sample-cicd.click"]
 s3_versioning_enabled     = true
 
 # v6: Observability + Web UI
@@ -42,7 +42,9 @@ alarm_lambda_errors_threshold    = 3
 alarm_lambda_duration_threshold  = 5000 # 5 seconds
 
 # v7: WAF + Auth
-waf_rate_limit       = 1000
-enable_custom_domain = false
-custom_domain_name   = ""
-hosted_zone_id       = ""
+waf_rate_limit = 1000
+
+# v8: Custom Domain + HTTPS
+enable_custom_domain = true
+custom_domain_name   = "sample-cicd.click"
+hosted_zone_id       = "Z0XXXXXXXXXXXXXXXXXX"

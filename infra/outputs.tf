@@ -111,3 +111,15 @@ output "waf_web_acl_arn" {
   description = "ARN of the WAF WebACL"
   value       = aws_wafv2_web_acl.cloudfront.arn
 }
+
+# --- v8: Custom Domain + Remote State outputs ---
+
+output "custom_domain_url" {
+  description = "Custom domain URL (empty if custom domain is disabled)"
+  value       = var.enable_custom_domain ? "https://${var.custom_domain_name}" : ""
+}
+
+output "app_url" {
+  description = "Application URL (custom domain or CloudFront domain)"
+  value       = var.enable_custom_domain ? "https://${var.custom_domain_name}" : "https://${aws_cloudfront_distribution.webui.domain_name}"
+}

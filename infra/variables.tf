@@ -84,19 +84,7 @@ variable "ecs_cpu_target_value" {
   default     = 70.0
 }
 
-# --- v3: HTTPS (code only, disabled by default) ---
-
-variable "enable_https" {
-  description = "Enable HTTPS resources (ACM, Route53, HTTPS listener). Requires domain_name to be set."
-  type        = bool
-  default     = false
-}
-
-variable "domain_name" {
-  description = "Custom domain name for HTTPS. Required when enable_https = true."
-  type        = string
-  default     = ""
-}
+# --- v3: HTTPS (removed in v8, replaced by enable_custom_domain) ---
 
 # --- v4: Event-Driven Architecture ---
 
