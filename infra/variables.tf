@@ -75,7 +75,7 @@ variable "ecs_min_count" {
 variable "ecs_max_count" {
   description = "Maximum number of ECS tasks for Auto Scaling"
   type        = number
-  default     = 3
+  default     = 4
 }
 
 variable "ecs_cpu_target_value" {
