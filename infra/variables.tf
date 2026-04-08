@@ -232,3 +232,22 @@ variable "hosted_zone_id" {
   type        = string
   default     = ""
 }
+
+# --- v9: CI/CD Automation ---
+
+variable "github_repo" {
+  description = "GitHub repository (owner/repo format) for OIDC trust policy"
+  type        = string
+}
+
+variable "codedeploy_traffic_routing" {
+  description = "CodeDeploy traffic routing type (AllAtOnce or Linear10PercentEvery1Minute)"
+  type        = string
+  default     = "AllAtOnce"
+}
+
+variable "enable_test_listener" {
+  description = "Create test listener on port 8080 for B/G deployment testing"
+  type        = bool
+  default     = false
+}

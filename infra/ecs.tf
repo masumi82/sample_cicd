@@ -144,13 +144,21 @@ resource "aws_ecs_service" "app" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.app.arn
+    target_group_arn = aws_lb_target_group.blue.arn
     container_name   = "app"
     container_port   = var.app_port
   }
 
-  deployment_minimum_healthy_percent = 100
-  deployment_maximum_percent         = 200
+  # v9: CodeDeploy B/G deployment
+  deployment_controller {
+    type = "CODE_DEPLOY"
+  }
+
+  # CodeDeploy manages task_definition and load_balancer updates;
+  # ignore to prevent Terraform from conflicting with CodeDeploy
+  lifecycle {
+    ignore_changes = [task_definition, load_balancer]
+  }
 
   depends_on = [aws_lb_listener.http]
 

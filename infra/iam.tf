@@ -235,6 +235,34 @@ resource "aws_iam_role" "lambda_task_cleanup" {
   }
 }
 
+# --- v9: CodeDeploy Service Role ---
+
+resource "aws_iam_role" "codedeploy" {
+  name = "${local.prefix}-codedeploy"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "codedeploy.amazonaws.com" }
+        Action    = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "${local.prefix}-codedeploy"
+    Project     = var.project_name
+    Environment = local.env
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "codedeploy_ecs" {
+  role       = aws_iam_role.codedeploy.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
+}
+
 resource "aws_iam_role_policy" "lambda_task_cleanup" {
   name = "${local.prefix}-lambda-task-cleanup-policy"
   role = aws_iam_role.lambda_task_cleanup.id

@@ -48,3 +48,8 @@ waf_rate_limit = 1000
 enable_custom_domain = true
 custom_domain_name   = "sample-cicd.click"
 hosted_zone_id       = "Z0XXXXXXXXXXXXXXXXXX"
+
+# v9: CI/CD Automation
+github_repo                = "masumi82/sample_cicd"
+codedeploy_traffic_routing = "AllAtOnce"
+enable_test_listener       = false

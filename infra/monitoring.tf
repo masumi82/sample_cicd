@@ -39,7 +39,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           period = 300
           metrics = [
             ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", aws_lb.main.arn_suffix, { stat = "Average" }],
-            ["AWS/ApplicationELB", "HealthyHostCount", "TargetGroup", aws_lb_target_group.app.arn_suffix,
+            ["AWS/ApplicationELB", "HealthyHostCount", "TargetGroup", aws_lb_target_group.blue.arn_suffix,
             "LoadBalancer", aws_lb.main.arn_suffix, { stat = "Average" }]
           ]
         }
@@ -248,7 +248,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_hosts" {
   evaluation_periods  = 2
   statistic           = "Average"
   dimensions = {
-    TargetGroup  = aws_lb_target_group.app.arn_suffix
+    TargetGroup  = aws_lb_target_group.blue.arn_suffix
     LoadBalancer = aws_lb.main.arn_suffix
   }
   alarm_actions = [aws_sns_topic.alarm_notifications.arn]

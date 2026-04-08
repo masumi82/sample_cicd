@@ -1,0 +1,189 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+  security-events: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r app/requirements.txt
+          pip install ruff pytest httpx "moto[sqs,events,s3]"
+
+      - name: Lint
+        run: ruff check app/ tests/ lambda/
+
+      - name: Test
+        env:
+          DATABASE_URL: "sqlite://"
+        run: pytest tests/ -v
+
+  build:
+    needs: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Build Docker image
+        run: docker build -t sample-cicd:ci -f app/Dockerfile .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: "sample-cicd:ci"
+          format: "table"
+          exit-code: "1"
+          severity: "HIGH,CRITICAL"
+
+      - name: Run Trivy (SARIF output)
+        if: always()
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: "sample-cicd:ci"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "HIGH,CRITICAL"
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@3b1a19a80ab047f35cbb237b5bd9bdc1e14f166c # v3
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Build frontend
+        run: cd frontend && npm ci && npm run build
+
+  security-scan:
+    needs: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@b466648d6e39e7c75324f25d83891162a721f2d6 # v1.0.3
+        with:
+          working_directory: infra
+          soft_fail: false
+          additional_args: "--minimum-severity HIGH"
+
+  terraform-plan:
+    needs: lint-test
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_ENV: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.9"
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Workspace
+        working-directory: infra
+        run: terraform workspace select ${{ env.DEPLOY_ENV }} || terraform workspace new ${{ env.DEPLOY_ENV }}
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: infra
+        run: |
+          terraform plan -var-file=${{ env.DEPLOY_ENV }}.tfvars -no-color -out=plan.bin 2>&1 | tee plan.txt
+          terraform show -json plan.bin > plan.json
+
+      - name: Post Plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('infra/plan.txt', 'utf8');
+            const truncated = plan.length > 60000
+              ? plan.substring(0, 60000) + '\n... (truncated)'
+              : plan;
+            const body = `### Terraform Plan (dev)\n\`\`\`\n${truncated}\n\`\`\``;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: terraform-plan
+          path: infra/plan.json
+
+  infracost:
+    needs: terraform-plan
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@b39c65483b3b14b930f689365cd9009289c63fa4
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: terraform-plan
+          path: infra/
+
+      - name: Generate Infracost diff
+        run: |
+          infracost diff \
+            --path infra/plan.json \
+            --format json \
+            --out-file /tmp/infracost.json
+
+      - name: Post Infracost comment
+        uses: infracost/actions/comment@b39c65483b3b14b930f689365cd9009289c63fa4
+        with:
+          path: /tmp/infracost.json
+          behavior: update
