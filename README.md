@@ -22,8 +22,9 @@ graph TD
     end
 
     subgraph InternetAccess["Internet Access"]
-        INET["インターネット"] --> WAF["WAF WebACL - v7<br>マネージドルール + レートリミット"]
-        WAF --> CF_UI[CloudFront OAC - v6]
+        INET["インターネット"] --> R53["Route 53<br>dev.sample-cicd.click - v8"]
+        R53 --> WAF["WAF WebACL - v7<br>マネージドルール + レートリミット"]
+        WAF --> CF_UI["CloudFront<br>ACM証明書 HTTPS - v8"]
         INET --> CF_ATT[CloudFront OAC]
         CF_ATT --> S3_ATT["S3 添付ファイル配信"]
         CF_UI --> S3_UI["S3 Web UI 静的配信"]
@@ -190,6 +191,24 @@ Cognito 認証と WAF による本番レベルのセキュリティを追加。
 
 ---
 
+### v8 — HTTPS + カスタムドメイン + Remote State（完了）
+
+カスタムドメインによる HTTPS アクセスと Terraform Remote State で本番運用基盤を完成。
+
+**追加機能**
+- Route 53 Hosted Zone で DNS 管理（`sample-cicd.click`）
+- ACM ワイルドカード証明書（`*.sample-cicd.click` + `sample-cicd.click`、us-east-1）
+- CloudFront にカスタムドメイン適用（dev: `dev.sample-cicd.click`）
+- Route 53 ALIAS レコード（CloudFront へ）
+- Terraform Remote State（S3 + DynamoDB ロック）
+- Bootstrap ディレクトリ（state 管理用リソースの独立管理）
+- ALB 簡素化（HTTPS リダイレクト削除、CloudFront が TLS 終端）
+- CI/CD config.js にカスタムドメイン動的注入（GitHub Actions Variables）
+
+**学習テーマ**: Route 53, ACM, DNS 検証, カスタムドメイン, Terraform Remote State, S3 Backend, DynamoDB Lock, Bootstrap パターン
+
+---
+
 ## API エンドポイント
 
 | メソッド | パス | 認証 | 説明 |
@@ -243,12 +262,15 @@ sample_cicd/
 │       ├── auth/               # 認証画面（Login/Signup/ConfirmSignup/PrivateRoute v7）
 │       └── components/         # TaskList, TaskForm, TaskDetail, Attachment 他
 ├── infra/                      # Terraform（AWS インフラ定義）
-│   ├── main.tf                 # VPC・サブネット・ルーティング
+│   ├── main.tf                 # VPC・サブネット + backend "s3"（Remote State v8）
+│   ├── bootstrap/              # Remote State 基盤（S3 + DynamoDB v8）
+│   │   ├── main.tf             # S3 バケット + DynamoDB テーブル
+│   │   └── outputs.tf          # バケット名・テーブル名出力
+│   ├── custom_domain.tf        # ACM証明書 + Route 53 ALIAS（v8、旧 https.tf）
 │   ├── ecs.tf                  # ECS（X-Ray サイドカー追加 v6）
 │   ├── alb.tf                  # ALB・ターゲットグループ・リスナー
 │   ├── rds.tf                  # RDS PostgreSQL（Multi-AZ）
 │   ├── autoscaling.tf          # Application Auto Scaling（v3）
-│   ├── https.tf                # ACM・Route53・HTTPSリスナー（コードのみ）
 │   ├── sqs.tf                  # SQS キュー + DLQ（v4）
 │   ├── lambda.tf               # Lambda 定義（Active Tracing 追加 v6）
 │   ├── eventbridge.tf          # EventBridge バス + ルール + Scheduler（v4）
@@ -265,8 +287,8 @@ sample_cicd/
 │   ├── secrets.tf              # Secrets Manager
 │   ├── security_groups.tf      # セキュリティグループ
 │   ├── logs.tf                 # CloudWatch Logs（X-Ray daemon ログ v6）
-│   ├── variables.tf            # 変数定義（アラーム閾値 v6）
-│   ├── outputs.tf              # 出力値（Dashboard URL・Web UI URL v6）
+│   ├── variables.tf            # 変数定義（カスタムドメイン設定 v8）
+│   ├── outputs.tf              # 出力値（app_url・custom_domain_url v8）
 │   ├── dev.tfvars              # dev 環境設定値
 │   └── prod.tfvars             # prod 環境設定値
 ├── .github/workflows/
@@ -279,10 +301,10 @@ sample_cicd/
 │   ├── test_observability.py  # v6 CORS・構造化ログ・X-Ray graceful degradation
 │   └── test_auth.py           # v7 JWT 認証テスト
 └── docs/
-    ├── 01_requirements/        # 要件定義書（v1〜v7）
+    ├── 01_requirements/        # 要件定義書（v1〜v8）
     ├── 02_design/              # 設計書（アーキテクチャ・API・DB・インフラ・CI/CD）
-    ├── 04_test/                # テスト計画書（v1〜v7）
-    ├── 05_deploy/              # デプロイ手順書・動作確認記録（v1〜v7）
+    ├── 04_test/                # テスト計画書（v1〜v8）
+    ├── 05_deploy/              # デプロイ手順書・動作確認記録（v1〜v8）
     └── 06_learning/            # 学習まとめ（v2〜v7）
 ```
 
@@ -395,9 +417,9 @@ push to main
        ├── ECR へ push（タグ: <short-SHA>, latest）
        ├── ECS ローリングデプロイ（minimum_healthy_percent: 100% 無停止）
        ├── Lambda コード更新（zip → update-function-code）
-       └── フロントエンドデプロイ（v6+v7）
+       └── フロントエンドデプロイ（v6+v7+v8）
             ├── npm build
-            ├── config.js 生成（CloudFront ドメイン + Cognito 設定を注入 v7）
+            ├── config.js 生成（カスタムドメイン + Cognito 設定を注入 v8）
             ├── S3 sync（--delete）
             └── CloudFront キャッシュ無効化
 ```
@@ -475,7 +497,7 @@ cd infra && terraform destroy
 | 5. デプロイ | `docs/05_deploy/` | デプロイ手順書・動作確認記録 |
 | — | `docs/06_learning/` | バージョンごとの学習まとめ |
 
-各バージョンのドキュメントは `_v2`, `_v3`, `_v4`, `_v5`, `_v6`, `_v7` サフィックスで並行管理している。
+各バージョンのドキュメントは `_v2`, `_v3`, `_v4`, `_v5`, `_v6`, `_v7`, `_v8` サフィックスで並行管理している。
 
 ---
 
@@ -514,4 +536,7 @@ cd infra && terraform destroy
 | JWT ライブラリ | python-jose[cryptography]（v7） |
 | WAF | AWS WAF v2（マネージドルール + レートリミット v7） |
 | フロントエンド | React 18 + Vite + amazon-cognito-identity-js（v6+v7） |
-| フロントエンドホスティング | S3 + CloudFront（SPA ルーティング対応 v6、WAF 保護 v7） |
+| DNS 管理 | Route 53 Hosted Zone（v8） |
+| SSL/TLS 証明書 | ACM ワイルドカード証明書（v8） |
+| Terraform State | S3 + DynamoDB Lock（Remote State v8） |
+| フロントエンドホスティング | S3 + CloudFront（カスタムドメイン HTTPS v8、WAF 保護 v7） |

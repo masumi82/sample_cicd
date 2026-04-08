@@ -12,8 +12,8 @@ All output must be in Japanese.
 
 ## Phase Definitions
 
-> **Note**: v1〜v8 の成果物を管理する。v1〜v7 は完了済み。
-> 引数が `1`〜`5` の場合は v8 のフェーズをチェックする。
+> **Note**: v1〜v8 の成果物を管理する。v1〜v8 は完了済み。
+> 引数が `1`〜`5` の場合は v9 のフェーズをチェックする。
 
 ### Phase 1: Requirements (要件定義)
 Required deliverables (v1 & v2 — 完了済み):
@@ -37,9 +37,13 @@ Required deliverables (v6 — 完了済み):
 - [x] `docs/01_requirements/requirements_v6.md` — Observability (CloudWatch Dashboard/Alarms, X-Ray, SNS, 構造化ログ) + Web UI (React SPA on S3+CloudFront, CORS, フロントエンド CI/CD) の要件
 - [x] CLAUDE.md に v6 の情報が反映済みであること
 
-Required deliverables (v7):
-- [ ] `docs/01_requirements/requirements_v7.md` — セキュリティ強化 + 認証 (Cognito User Pool, JWT 認証, WAF, HTTPS/カスタムドメイン) の要件
-- [ ] CLAUDE.md に v7 の情報が反映済みであること
+Required deliverables (v7 — 完了済み):
+- [x] `docs/01_requirements/requirements_v7.md` — セキュリティ強化 + 認証 (Cognito User Pool, JWT 認証, WAF, HTTPS/カスタムドメイン) の要件
+- [x] CLAUDE.md に v7 の情報が反映済みであること
+
+Required deliverables (v8 — 完了済み):
+- [x] `docs/01_requirements/requirements_v8.md` — HTTPS + カスタムドメイン + Remote State の要件
+- [x] CLAUDE.md に v8 の情報が反映済みであること
 
 ### Phase 2: Design (設計)
 Required deliverables (v1 & v2 — 完了済み):
@@ -73,10 +77,15 @@ Required deliverables (v6 — 完了済み):
 - [x] `docs/02_design/infrastructure_v6.md` — Terraform リソース設計（monitoring.tf, sns.tf, webui.tf, X-Ray sidecar, IAM 更新）
 - [x] `docs/02_design/cicd_v6.md` — CI/CD パイプライン設計（Node.js セットアップ + フロントエンドビルド・デプロイ）
 
-Required deliverables (v7):
-- [ ] `docs/02_design/architecture_v7.md` — アーキテクチャ設計（Cognito 認証フロー、WAF 配置、JWT 検証）
-- [ ] `docs/02_design/infrastructure_v7.md` — Terraform リソース設計（cognito.tf, waf.tf, ECS 環境変数追加）
-- [ ] `docs/02_design/cicd_v7.md` — CI/CD パイプライン設計（Cognito 設定注入）
+Required deliverables (v7 — 完了済み):
+- [x] `docs/02_design/architecture_v7.md` — アーキテクチャ設計（Cognito 認証フロー、WAF 配置、JWT 検証）
+- [x] `docs/02_design/infrastructure_v7.md` — Terraform リソース設計（cognito.tf, waf.tf, ECS 環境変数追加）
+- [x] `docs/02_design/cicd_v7.md` — CI/CD パイプライン設計（Cognito 設定注入）
+
+Required deliverables (v8 — 完了済み):
+- [x] `docs/02_design/architecture_v8.md` — アーキテクチャ設計（Route 53, ACM, HTTPS 終端, サブドメイン, Remote State）
+- [x] `docs/02_design/infrastructure_v8.md` — Terraform リソース設計（custom_domain.tf, bootstrap/, backend "s3"）
+- [x] `docs/02_design/cicd_v8.md` — CI/CD パイプライン設計（config.js カスタムドメイン注入）
 
 ### Phase 3: Implementation (実装)
 Required deliverables (v1 & v2 — 完了済み):
@@ -148,24 +157,38 @@ Required deliverables (v6 — 完了済み):
 - [x] Code passes lint (`ruff check app/ tests/ lambda/`) and Terraform validate
 - [x] Frontend builds successfully (`cd frontend && npm ci && npm run build`)
 
-Required deliverables (v7):
-- [ ] `infra/cognito.tf` — Cognito User Pool + App Client
-- [ ] `infra/waf.tf` — WAF v2 WebACL（マネージドルール 2 つ + レートリミット）
-- [ ] `infra/variables.tf` — v7 変数追加（WAF レートリミット閾値、enable_custom_domain 等）
-- [ ] `infra/outputs.tf` — v7 出力追加（cognito_user_pool_id, cognito_app_client_id, waf_web_acl_arn）
-- [ ] `infra/dev.tfvars` — v7 変数値追加
-- [ ] `infra/prod.tfvars` — v7 変数値追加
-- [ ] `infra/ecs.tf` — COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID 環境変数追加
-- [ ] `infra/webui.tf` — WAF WebACL を CloudFront に関連付け
-- [ ] `app/requirements.txt` — `python-jose[cryptography]` 追加
-- [ ] `app/auth.py` — JWT 認証ミドルウェア（JWKS 検証、Graceful degradation）
-- [ ] `app/main.py` — 認証ミドルウェア適用（公開/保護エンドポイント分離）
-- [ ] `frontend/src/` — ログイン / サインアップ / 確認コード画面追加
-- [ ] `frontend/src/` — 保護ルーティング（PrivateRoute コンポーネント）
-- [ ] `frontend/src/api/client.js` — Authorization ヘッダー自動付与 + 401 ハンドリング
-- [ ] `frontend/package.json` — `amazon-cognito-identity-js` 追加
-- [ ] Code passes lint (`ruff check app/ tests/ lambda/`) and Terraform validate
-- [ ] Frontend builds successfully (`cd frontend && npm ci && npm run build`)
+Required deliverables (v7 — 完了済み):
+- [x] `infra/cognito.tf` — Cognito User Pool + App Client
+- [x] `infra/waf.tf` — WAF v2 WebACL（マネージドルール 2 つ + レートリミット）
+- [x] `infra/variables.tf` — v7 変数追加（WAF レートリミット閾値、enable_custom_domain 等）
+- [x] `infra/outputs.tf` — v7 出力追加（cognito_user_pool_id, cognito_app_client_id, waf_web_acl_arn）
+- [x] `infra/dev.tfvars` — v7 変数値追加
+- [x] `infra/prod.tfvars` — v7 変数値追加
+- [x] `infra/ecs.tf` — COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID 環境変数追加
+- [x] `infra/webui.tf` — WAF WebACL を CloudFront に関連付け
+- [x] `app/requirements.txt` — `python-jose[cryptography]` 追加
+- [x] `app/auth.py` — JWT 認証ミドルウェア（JWKS 検証、Graceful degradation）
+- [x] `app/main.py` — 認証ミドルウェア適用（公開/保護エンドポイント分離）
+- [x] `frontend/src/` — ログイン / サインアップ / 確認コード画面追加
+- [x] `frontend/src/` — 保護ルーティング（PrivateRoute コンポーネント）
+- [x] `frontend/src/api/client.js` — Authorization ヘッダー自動付与 + 401 ハンドリング
+- [x] `frontend/package.json` — `amazon-cognito-identity-js` 追加
+- [x] Code passes lint (`ruff check app/ tests/ lambda/`) and Terraform validate
+- [x] Frontend builds successfully (`cd frontend && npm ci && npm run build`)
+
+Required deliverables (v8 — 完了済み):
+- [x] `infra/bootstrap/main.tf`, `infra/bootstrap/outputs.tf` — Remote State 基盤（S3 + DynamoDB）
+- [x] `infra/custom_domain.tf` — ACM 証明書（us-east-1 ワイルドカード）+ Route 53 ALIAS（旧 https.tf から書き換え）
+- [x] `infra/webui.tf` — CloudFront aliases + dynamic viewer_certificate 追加
+- [x] `infra/main.tf` — backend "s3" ブロック追加（Remote State）
+- [x] `infra/variables.tf` — `enable_https` / `domain_name` 廃止、`enable_custom_domain` に統一
+- [x] `infra/outputs.tf` — `custom_domain_url`, `app_url` 追加
+- [x] `infra/alb.tf` — HTTPS リダイレクト削除（CloudFront が TLS 終端）
+- [x] `infra/security_groups.tf` — ALB 443 ingress 削除
+- [x] `infra/dev.tfvars`, `infra/prod.tfvars` — カスタムドメイン有効化
+- [x] `.github/workflows/ci-cd.yml` — config.js カスタムドメイン対応（GitHub Variables フォールバック）
+- [x] Code passes lint (`ruff check app/ tests/ lambda/`) and Terraform validate
+- [x] Frontend builds successfully (`cd frontend && npm ci && npm run build`)
 
 ### Phase 4: Test (テスト)
 Required deliverables (v1 & v2 — 完了済み):
@@ -194,10 +217,15 @@ Required deliverables (v6 — 完了済み):
 - [x] `tests/test_observability.py` — CORS / 構造化ログ / X-Ray graceful degradation テスト（TC-40〜TC-46）
 - [x] v5 までの既存テスト（TC-01〜TC-39, 46 件）が引き続き全件 PASS
 
-Required deliverables (v7):
-- [ ] `docs/04_test/test_plan_v7.md` — テスト計画書（v7）
-- [ ] `tests/test_auth.py` — JWT 認証テスト（認証成功・失敗・トークン期限切れ・公開エンドポイント・Graceful degradation）
-- [ ] v6 までの既存テスト（54 件）が引き続き全件 PASS
+Required deliverables (v7 — 完了済み):
+- [x] `docs/04_test/test_plan_v7.md` — テスト計画書（v7）
+- [x] `tests/test_auth.py` — JWT 認証テスト（認証成功・失敗・トークン期限切れ・公開エンドポイント・Graceful degradation）
+- [x] v6 までの既存テスト（54 件）が引き続き全件 PASS
+
+Required deliverables (v8 — 完了済み):
+- [x] `docs/04_test/test_plan_v8.md` — テスト計画書（v8）
+- [x] v7 までの既存テスト（62 件）が引き続き全件 PASS
+- [x] Terraform validate（infra/ + bootstrap/）成功
 
 ### Phase 5: Deploy (デプロイ)
 Required deliverables (v1 & v2 — 完了済み):
@@ -242,16 +270,27 @@ Required deliverables (v6 — 完了済み):
 - [x] Web UI から添付ファイルのアップロード・ダウンロード・削除が動作することを確認
 - [x] CI/CD パイプラインでフロントエンドビルド・デプロイが成功することを確認
 
-Required deliverables (v7):
-- [ ] `docs/05_deploy/deploy_procedure_v7.md` — デプロイ手順書（v7）
-- [ ] `docs/05_deploy/verification_v7.md` — 動作確認記録（v7）
-- [ ] `terraform apply` で Cognito User Pool / WAF WebACL が作成済み
-- [ ] Web UI にログイン画面が表示されることを確認
-- [ ] サインアップ → メール確認 → ログインのフローが動作することを確認
-- [ ] 未認証状態で API を叩くと 401 が返ることを確認
-- [ ] ログイン後に API を叩くとタスク操作が可能なことを確認
-- [ ] WAF レートリミットが適用されていることを確認（AWS コンソール）
-- [ ] CI/CD パイプラインが成功することを確認
+Required deliverables (v7 — 完了済み):
+- [x] `docs/05_deploy/deploy_procedure_v7.md` — デプロイ手順書（v7）
+- [x] `docs/05_deploy/verification_v7.md` — 動作確認記録（v7）
+- [x] `terraform apply` で Cognito User Pool / WAF WebACL が作成済み
+- [x] Web UI にログイン画面が表示されることを確認
+- [x] サインアップ → メール確認 → ログインのフローが動作することを確認
+- [x] 未認証状態で API を叩くと 401 が返ることを確認
+- [x] ログイン後に API を叩くとタスク操作が可能なことを確認
+- [x] WAF レートリミットが適用されていることを確認（AWS コンソール）
+- [x] CI/CD パイプラインが成功することを確認
+
+Required deliverables (v8 — 完了済み):
+- [x] `docs/05_deploy/deploy_procedure_v8.md` — デプロイ手順書（v8）
+- [x] `docs/05_deploy/verification_v8.md` — 動作確認記録（v8）
+- [x] Bootstrap apply で S3 バケット + DynamoDB テーブルが作成済み
+- [x] `terraform init -migrate-state` で Remote State に移行済み
+- [x] `terraform apply` で ACM 証明書 + Route 53 ALIAS + CloudFront カスタムドメインが作成済み
+- [x] `https://dev.sample-cicd.click` にアクセス可能
+- [x] SSL 証明書が有効（ACM ワイルドカード証明書）
+- [x] config.js の API_URL がカスタムドメインに更新済み
+- [x] CI/CD パイプラインが成功
 
 ## Review Process
 
