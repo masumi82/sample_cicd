@@ -202,6 +202,7 @@ resource "aws_iam_role_policy" "github_actions" {
           "elasticloadbalancing:*",
           "ecr:*",
           "ecs:*",
+          "scheduler:*",
           "sts:GetCallerIdentity"
         ]
         Resource = "*"
