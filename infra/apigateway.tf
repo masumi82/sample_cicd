@@ -81,6 +81,8 @@ resource "aws_api_gateway_integration" "tasks_proxy" {
   request_parameters = {
     "integration.request.path.proxy" = "method.request.path.proxy"
   }
+
+  cache_key_parameters = ["method.request.path.proxy"]
 }
 
 # Deployment
