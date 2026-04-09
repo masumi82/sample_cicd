@@ -98,6 +98,7 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_method.tasks_proxy.id,
       aws_api_gateway_integration.tasks.id,
       aws_api_gateway_integration.tasks_proxy.id,
+      aws_api_gateway_integration.tasks_proxy.cache_key_parameters,
     ]))
   }
 
