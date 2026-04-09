@@ -130,6 +130,24 @@ jobs:
           terraform plan -var-file=${{ env.DEPLOY_ENV }}.tfvars -no-color -out=plan.bin 2>&1 | tee plan.txt
           terraform show -json plan.bin > plan.json
 
+      - name: Mask secrets in plan output
+        run: |
+          sed -i \
+            -e 's/[0-9]\{12\}/123456789012/g' \
+            -e 's/vpc-[a-z0-9]\+/vpc-XXXXXXXXXXXXXXXXX/g' \
+            -e 's/sg-[a-z0-9]\+/sg-XXXXXXXXXXXXXXXXX/g' \
+            -e 's/subnet-[a-z0-9]\+/subnet-XXXXXXXXXXXXXXXXX/g' \
+            -e 's/rtb-[a-z0-9]\+/rtb-XXXXXXXXXXXXXXXXX/g' \
+            -e 's/igw-[a-z0-9]\+/igw-XXXXXXXXXXXXXXXXX/g' \
+            -e 's/nat-[a-z0-9]\+/nat-XXXXXXXXXXXXXXXXX/g' \
+            -e 's/eipalloc-[a-z0-9]\+/eipalloc-XXXXXXXXXXXXXXXXX/g' \
+            -e 's/eni-[a-z0-9]\+/eni-XXXXXXXXXXXXXXXXX/g' \
+            -e 's/acl-[a-z0-9]\+/acl-XXXXXXXXXXXXXXXXX/g' \
+            -e 's/d[a-z0-9]\{13,14\}\.cloudfront\.net/dXXXXXXXXXXXXX.cloudfront.net/g' \
+            -e 's/Z[A-Z0-9]\{10,32\}/Z0XXXXXXXXXXXXXXXXXX/g' \
+            -e 's/sample-cicd-[a-z]*-alb-[a-z0-9]\+\.\(ap-northeast-1\)\.elb\.amazonaws\.com/sample-cicd-dev-alb-XXXXXXXXXX.\1.elb.amazonaws.com/g' \
+            infra/plan.txt
+
       - name: Post Plan to PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
