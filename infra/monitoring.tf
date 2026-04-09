@@ -203,13 +203,104 @@ resource "aws_cloudwatch_dashboard" "main" {
             ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", aws_sqs_queue.task_events_dlq.name]
           ]
         }
+      },
+
+      # Row 6: API Gateway metrics (v10)
+      {
+        type   = "metric"
+        x      = 0
+        y      = 30
+        width  = 12
+        height = 6
+        properties = {
+          title  = "API Gateway Request Count & 5xx Errors"
+          region = var.aws_region
+          period = 300
+          stat   = "Sum"
+          metrics = [
+            ["AWS/ApiGateway", "Count", "ApiName", aws_api_gateway_rest_api.main.name],
+            ["AWS/ApiGateway", "5XXError", "ApiName", aws_api_gateway_rest_api.main.name]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 12
+        y      = 30
+        width  = 12
+        height = 6
+        properties = {
+          title  = "API Gateway Latency & Cache"
+          region = var.aws_region
+          period = 300
+          metrics = [
+            ["AWS/ApiGateway", "Latency", "ApiName", aws_api_gateway_rest_api.main.name, { stat = "Average" }],
+            ["AWS/ApiGateway", "IntegrationLatency", "ApiName", aws_api_gateway_rest_api.main.name, { stat = "Average" }],
+            ["AWS/ApiGateway", "CacheHitCount", "ApiName", aws_api_gateway_rest_api.main.name, { stat = "Sum" }],
+            ["AWS/ApiGateway", "CacheMissCount", "ApiName", aws_api_gateway_rest_api.main.name, { stat = "Sum" }]
+          ]
+        }
+      },
+
+      # Row 7: ElastiCache Redis metrics (v10)
+      {
+        type   = "metric"
+        x      = 0
+        y      = 36
+        width  = 8
+        height = 6
+        properties = {
+          title  = "Redis CPU Utilization"
+          region = var.aws_region
+          period = 300
+          stat   = "Average"
+          metrics = [
+            ["AWS/ElastiCache", "CPUUtilization", "CacheClusterId", aws_elasticache_cluster.main.cluster_id],
+            ["AWS/ElastiCache", "EngineCPUUtilization", "CacheClusterId", aws_elasticache_cluster.main.cluster_id]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 8
+        y      = 36
+        width  = 8
+        height = 6
+        properties = {
+          title  = "Redis Connections"
+          region = var.aws_region
+          period = 300
+          stat   = "Average"
+          metrics = [
+            ["AWS/ElastiCache", "CurrConnections", "CacheClusterId", aws_elasticache_cluster.main.cluster_id],
+            ["AWS/ElastiCache", "NewConnections", "CacheClusterId", aws_elasticache_cluster.main.cluster_id]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 16
+        y      = 36
+        width  = 8
+        height = 6
+        properties = {
+          title  = "Redis Cache Hits/Misses & Evictions"
+          region = var.aws_region
+          period = 300
+          stat   = "Sum"
+          metrics = [
+            ["AWS/ElastiCache", "CacheHits", "CacheClusterId", aws_elasticache_cluster.main.cluster_id],
+            ["AWS/ElastiCache", "CacheMisses", "CacheClusterId", aws_elasticache_cluster.main.cluster_id],
+            ["AWS/ElastiCache", "Evictions", "CacheClusterId", aws_elasticache_cluster.main.cluster_id]
+          ]
+        }
       }
     ]
   })
 }
 
 # ============================
-# CloudWatch Alarms (12)
+# CloudWatch Alarms (12 + 4 v10)
 # ============================
 
 # ALB 5xx Errors
@@ -477,6 +568,104 @@ resource "aws_cloudwatch_metric_alarm" "sqs_dlq_messages" {
   statistic           = "Sum"
   dimensions = {
     QueueName = aws_sqs_queue.task_events_dlq.name
+  }
+  alarm_actions = [aws_sns_topic.alarm_notifications.arn]
+  ok_actions    = [aws_sns_topic.alarm_notifications.arn]
+
+  tags = {
+    Project     = var.project_name
+    Environment = local.env
+  }
+}
+
+# --- v10: API Gateway + ElastiCache Alarms ---
+
+# API Gateway 5xx Errors
+resource "aws_cloudwatch_metric_alarm" "apigw_5xx" {
+  alarm_name          = "${local.prefix}-apigw-5xx"
+  alarm_description   = "API Gateway 5xx error count exceeds threshold"
+  namespace           = "AWS/ApiGateway"
+  metric_name         = "5XXError"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = var.alarm_apigw_5xx_threshold
+  period              = 300
+  evaluation_periods  = 2
+  statistic           = "Sum"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    ApiName = aws_api_gateway_rest_api.main.name
+  }
+  alarm_actions = [aws_sns_topic.alarm_notifications.arn]
+  ok_actions    = [aws_sns_topic.alarm_notifications.arn]
+
+  tags = {
+    Project     = var.project_name
+    Environment = local.env
+  }
+}
+
+# API Gateway Integration Latency
+resource "aws_cloudwatch_metric_alarm" "apigw_latency" {
+  alarm_name          = "${local.prefix}-apigw-latency"
+  alarm_description   = "API Gateway integration latency exceeds threshold"
+  namespace           = "AWS/ApiGateway"
+  metric_name         = "IntegrationLatency"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = var.alarm_apigw_latency_threshold
+  period              = 300
+  evaluation_periods  = 2
+  statistic           = "Average"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    ApiName = aws_api_gateway_rest_api.main.name
+  }
+  alarm_actions = [aws_sns_topic.alarm_notifications.arn]
+  ok_actions    = [aws_sns_topic.alarm_notifications.arn]
+
+  tags = {
+    Project     = var.project_name
+    Environment = local.env
+  }
+}
+
+# Redis CPU Utilization
+resource "aws_cloudwatch_metric_alarm" "redis_cpu" {
+  alarm_name          = "${local.prefix}-redis-cpu-high"
+  alarm_description   = "Redis CPU utilization exceeds threshold"
+  namespace           = "AWS/ElastiCache"
+  metric_name         = "CPUUtilization"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = var.alarm_redis_cpu_threshold
+  period              = 300
+  evaluation_periods  = 2
+  statistic           = "Average"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    CacheClusterId = aws_elasticache_cluster.main.cluster_id
+  }
+  alarm_actions = [aws_sns_topic.alarm_notifications.arn]
+  ok_actions    = [aws_sns_topic.alarm_notifications.arn]
+
+  tags = {
+    Project     = var.project_name
+    Environment = local.env
+  }
+}
+
+# Redis Evictions
+resource "aws_cloudwatch_metric_alarm" "redis_evictions" {
+  alarm_name          = "${local.prefix}-redis-evictions"
+  alarm_description   = "Redis evictions detected"
+  namespace           = "AWS/ElastiCache"
+  metric_name         = "Evictions"
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 0
+  period              = 300
+  evaluation_periods  = 1
+  statistic           = "Sum"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    CacheClusterId = aws_elasticache_cluster.main.cluster_id
   }
   alarm_actions = [aws_sns_topic.alarm_notifications.arn]
   ok_actions    = [aws_sns_topic.alarm_notifications.arn]

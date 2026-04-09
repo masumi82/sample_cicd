@@ -251,3 +251,77 @@ variable "enable_test_listener" {
   type        = bool
   default     = false
 }
+
+# --- v10: API Gateway + ElastiCache ---
+
+variable "redis_node_type" {
+  description = "ElastiCache Redis node type"
+  type        = string
+  default     = "cache.t3.micro"
+}
+
+variable "redis_port" {
+  description = "ElastiCache Redis port"
+  type        = number
+  default     = 6379
+}
+
+variable "apigw_cache_ttl" {
+  description = "API Gateway cache TTL in seconds"
+  type        = number
+  default     = 300
+}
+
+variable "apigw_throttle_rate_limit" {
+  description = "API Gateway steady-state request rate limit (requests/sec)"
+  type        = number
+  default     = 50
+}
+
+variable "apigw_throttle_burst_limit" {
+  description = "API Gateway burst request limit"
+  type        = number
+  default     = 100
+}
+
+variable "apigw_quota_limit" {
+  description = "API Gateway usage plan quota (requests per period)"
+  type        = number
+  default     = 10000
+}
+
+variable "apigw_quota_period" {
+  description = "API Gateway usage plan quota period (DAY, WEEK, MONTH)"
+  type        = string
+  default     = "DAY"
+}
+
+variable "app_cache_ttl_list" {
+  description = "Application-level Redis cache TTL for task list (seconds)"
+  type        = number
+  default     = 300
+}
+
+variable "app_cache_ttl_detail" {
+  description = "Application-level Redis cache TTL for individual task (seconds)"
+  type        = number
+  default     = 600
+}
+
+variable "alarm_apigw_5xx_threshold" {
+  description = "Threshold for API Gateway 5xx error count alarm"
+  type        = number
+  default     = 10
+}
+
+variable "alarm_redis_cpu_threshold" {
+  description = "Threshold for ElastiCache Redis CPU utilization alarm (%)"
+  type        = number
+  default     = 90
+}
+
+variable "alarm_apigw_latency_threshold" {
+  description = "Threshold for API Gateway integration latency alarm (ms)"
+  type        = number
+  default     = 5000
+}

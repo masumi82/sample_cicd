@@ -6,3 +6,4 @@ alembic
 boto3
 aws-xray-sdk
 python-jose[cryptography]
+redis

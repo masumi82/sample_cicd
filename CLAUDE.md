@@ -17,6 +17,7 @@ CI/CD学習を目的としたサーバーレスコンテナアプリケーショ
 | v7 | セキュリティ強化 + 認証 (Cognito, JWT, WAF) | 完了 |
 | v8 | HTTPS + カスタムドメイン + Remote State (Route 53, ACM, S3 Backend, DynamoDB Lock) | 完了 |
 | v9 | CI/CD 完全自動化 + セキュリティスキャン (CodeDeploy B/G, OIDC, Trivy, tfsec, Infracost, Terraform CI/CD) | 完了 |
+| v10 | API Gateway + ElastiCache Redis + レート制限 (REST API, Usage Plans, Cache-aside, Graceful degradation) | 開発中 |
 
 ## Common Commands
 
@@ -44,8 +45,8 @@ cd infra && terraform workspace select dev && terraform plan -var-file=dev.tfvar
 graph LR
     INET[Internet] --> R53[Route 53] --> WAF[WAF] --> CF[CloudFront<br>ACM HTTPS]
     CF --> S3_UI[S3 Web UI]
-    CF --> ALB[ALB] --> ECS[ECS Fargate<br>FastAPI + JWT + X-Ray]
-    ECS --> RDS[RDS PostgreSQL]
+    CF -->|"/tasks*"| APIGW[API Gateway<br>REST API + Cache] --> ALB[ALB] --> ECS[ECS Fargate<br>FastAPI + JWT + X-Ray]
+    ECS --> REDIS[ElastiCache Redis] --> RDS[RDS PostgreSQL]
     ECS --> S3[S3] & SQS[SQS] & EB[EventBridge]
     SQS --> L1[Lambda] & EB --> L2[Lambda] & L3[Lambda cleanup]
     SPA[React SPA] --> COGNITO[Cognito]
@@ -59,6 +60,9 @@ graph LR
 - **HTTPS termination**: CloudFront で TLS 終端。ALB は HTTP のみ（v8）
 - **Remote State**: S3 + DynamoDB Lock。bootstrap/ で基盤を独立管理（v8）
 - **Lambda deployment**: コード更新は CI/CD で `aws lambda update-function-code` により実行
+- **API Gateway**: REST API (REGIONAL) で `/tasks*` を管理。Usage Plan + API キーでアクセス制御。ステージキャッシュで HTTP レスポンスをキャッシュ（v10）
+- **2-layer cache**: L1 = API Gateway ステージキャッシュ (HTTP)、L2 = ElastiCache Redis (DB クエリ)。Cache-aside パターン + 書き込み時即時無効化（v10）
+- **Rate limiting**: WAF (IP制限) + API Gateway (スロットリング + Usage Plan クォータ) の多層設計（v10）
 
 ### App Structure
 
@@ -67,9 +71,10 @@ graph LR
 | `app/main.py` | エントリポイント。X-Ray/CORS/構造化ログ。`/`, `/health` は認証不要 |
 | `app/auth.py` | JWT 認証。Cognito JWKS 検証、Graceful degradation |
 | `app/database.py` | DB URL 解決（`DATABASE_URL` → `DB_*`） |
-| `app/routers/tasks.py` | Task CRUD + SQS/EventBridge イベント発行 |
+| `app/routers/tasks.py` | Task CRUD + SQS/EventBridge イベント発行 + Redis キャッシュ統合 |
 | `app/routers/attachments.py` | 添付ファイル CRUD + S3 Presigned URL |
 | `app/services/events.py` | SQS/EventBridge 送信 |
+| `app/services/cache.py` | Redis キャッシュ (Cache-aside, Graceful degradation) |
 | `app/services/storage.py` | S3 操作 |
 | `app/models.py` | SQLAlchemy: Task + Attachment |
 | `app/schemas.py` | Pydantic v2 + ファイル名サニタイズ |
@@ -87,19 +92,21 @@ graph LR
 | `infra/cognito.tf` | Cognito User Pool + App Client |
 | `infra/waf.tf` | WAF v2 WebACL (us-east-1) |
 | `infra/webui.tf` | Web UI S3 + CloudFront（カスタムドメイン + WAF） |
-| `infra/monitoring.tf` | Dashboard (1) + Alarms (12) |
+| `infra/apigateway.tf` | REST API, Usage Plan, API Key, ステージキャッシュ |
+| `infra/elasticache.tf` | ElastiCache Redis クラスタ + サブネットグループ |
+| `infra/monitoring.tf` | Dashboard (1) + Alarms (16) |
 | `infra/sqs.tf` / `eventbridge.tf` / `lambda.tf` | イベント駆動 |
 | `infra/s3.tf` / `cloudfront.tf` | 添付ファイルストレージ + CDN |
 
 ### CI/CD Pipeline
 
-**CI** (全 push / PR): `ruff` → `pytest` (62 tests) → `docker build` → `npm build`
+**CI** (全 push / PR): `ruff` → `pytest` (84 tests) → `docker build` → `npm build`
 **CD** (main のみ): ECR push → ECS deploy → Lambda update → Frontend S3 sync (config.js にカスタムドメイン + Cognito 注入) + CloudFront invalidation
 
 ### Test Structure
 
-62 テスト: test_main (6) + test_tasks (17) + test_attachments (23) + test_observability (8) + test_auth (8)
-SQLite in-memory + moto `@mock_aws`。`conftest.py` で DB + AWS fixture。
+84 テスト: test_main (6) + test_tasks (17) + test_attachments (23) + test_observability (8) + test_auth (8) + test_cache (22)
+SQLite in-memory + moto `@mock_aws` + fakeredis。`conftest.py` で DB + AWS fixture。
 
 ## Environment Variables
 
@@ -115,6 +122,9 @@ SQLite in-memory + moto `@mock_aws`。`conftest.py` で DB + AWS fixture。
 | `COGNITO_USER_POOL_ID` | ECS | Optional | 未設定→認証スキップ |
 | `COGNITO_APP_CLIENT_ID` | ECS | Optional | 未設定→認証スキップ |
 | `CORS_ALLOWED_ORIGINS` | ECS | Optional | 未設定→`*` |
+| `REDIS_URL` | ECS | Optional | Redis 接続 URL。未設定→キャッシュスキップ |
+| `CACHE_TTL_LIST` | ECS | Optional | タスク一覧キャッシュ TTL (秒)。デフォルト 300 |
+| `CACHE_TTL_DETAIL` | ECS | Optional | 個別タスクキャッシュ TTL (秒)。デフォルト 600 |
 
 ## Development Process
 

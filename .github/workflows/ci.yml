@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r app/requirements.txt
-          pip install ruff pytest httpx "moto[sqs,events,s3]"
+          pip install ruff pytest httpx "moto[sqs,events,s3]" fakeredis
 
       - name: Lint
         run: ruff check app/ tests/ lambda/
