@@ -58,6 +58,48 @@ destroy 後に以下を確認:
 削除されたリソース数と残存リソース（あれば）を報告。
 
 ## 注意事項
-- Bootstrap リソース（S3 tfstate, DynamoDB tflock）は **削除しない**（Remote State 基盤）
 - `prod` 環境の場合は二重確認を要求
-- Hosted Zone / ドメイン登録は **削除しない**（ドメイン費用が無駄になる）
+
+## 保持リソース（削除しない）
+
+以下のリソースは **常時残しておく**。無料または誤差レベルのコスト（合計 ~$0.55/月）で、CI/CD パイプラインの前提となるため。
+
+| リソース | Terraform リソース名 | 月額 | 理由 |
+|----------|---------------------|------|------|
+| IAM OIDC Provider | `aws_iam_openid_connect_provider.github_actions` | $0 | CI の terraform-plan で OIDC 認証に必要 |
+| IAM Role (GitHub Actions) | `aws_iam_role.github_actions` | $0 | 同上 |
+| IAM Role Policy (GitHub Actions) | `aws_iam_role_policy.github_actions` | $0 | 同上 |
+| S3 (terraform-state) | Bootstrap 管理 | ~$0.02 | Remote State。消すと全インフラ管理不能 |
+| DynamoDB (terraform-lock) | Bootstrap 管理 | $0 | State ロック。Free Tier 内 |
+| Route 53 Hosted Zone | `aws_route53_zone` (該当あれば) | $0.50 | カスタムドメイン前提。再作成で NS 変更が必要になる |
+| ECR Repository | `aws_ecr_repository.app` | ~$0.03 | イメージ 1 つ残す場合。空なら $0 |
+| Cognito User Pool | `aws_cognito_user_pool.main` | $0 | 50,000 MAU まで無料 |
+| Cognito App Client | `aws_cognito_user_pool_client.spa` | $0 | User Pool とセット |
+
+### 実装方法
+
+`terraform destroy` の代わりに、保持リソースを除外した targeted destroy を実行するか、保持リソースを `terraform state rm` で state から外してから destroy する。
+
+```bash
+# 方法: 保持リソースを state から退避 → destroy → state に戻す
+# Step 1: 保持リソースの state を退避
+terraform state pull > backup.tfstate
+
+# Step 2: 保持リソースを state から除外
+terraform state rm aws_iam_openid_connect_provider.github_actions
+terraform state rm aws_iam_role.github_actions
+terraform state rm aws_iam_role_policy.github_actions
+terraform state rm aws_ecr_repository.app
+terraform state rm aws_cognito_user_pool.main
+terraform state rm aws_cognito_user_pool_client.spa
+
+# Step 3: destroy（保持リソース以外を削除）
+terraform destroy -var-file=$ENV.tfvars -auto-approve
+
+# Step 4: 保持リソースを state に再 import
+terraform import aws_iam_openid_connect_provider.github_actions <arn>
+terraform import aws_iam_role.github_actions <role-name>
+# ... 以下同様
+```
+
+> **注**: Bootstrap リソース（S3 tfstate, DynamoDB tflock）は Terraform 管理外（bootstrap/ で別管理）のため上記に含まない。
