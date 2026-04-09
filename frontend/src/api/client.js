@@ -38,7 +38,7 @@ async function request(path, options = {}) {
 
 // Tasks API
 export function getTasks() {
-  return request("/tasks");
+  return request("/api/tasks");
 }
 
 export function getTask(id) {
@@ -46,7 +46,7 @@ export function getTask(id) {
 }
 
 export function createTask(data) {
-  return request("/tasks", {
+  return request("/api/tasks", {
     method: "POST",
     body: JSON.stringify(data),
   });

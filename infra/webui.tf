@@ -87,9 +87,9 @@ resource "aws_cloudfront_distribution" "webui" {
     }
   }
 
-  # API behavior: /tasks* → API Gateway (no CloudFront caching, API GW handles cache)
+  # API behavior: /api/tasks* → API Gateway (no CloudFront caching, API GW handles cache)
   ordered_cache_behavior {
-    path_pattern     = "/tasks*"
+    path_pattern     = "/api/tasks*"
     target_origin_id = "apigw-api"
 
     allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]

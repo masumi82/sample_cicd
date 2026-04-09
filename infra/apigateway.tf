@@ -16,10 +16,17 @@ resource "aws_api_gateway_rest_api" "main" {
   }
 }
 
-# /tasks resource
-resource "aws_api_gateway_resource" "tasks" {
+# /api resource
+resource "aws_api_gateway_resource" "api" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_rest_api.main.root_resource_id
+  path_part   = "api"
+}
+
+# /api/tasks resource
+resource "aws_api_gateway_resource" "tasks" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.api.id
   path_part   = "tasks"
 }
 
@@ -82,6 +89,7 @@ resource "aws_api_gateway_deployment" "main" {
 
   triggers = {
     redeployment = sha1(jsonencode([
+      aws_api_gateway_resource.api.id,
       aws_api_gateway_resource.tasks.id,
       aws_api_gateway_resource.tasks_proxy.id,
       aws_api_gateway_method.tasks.id,
