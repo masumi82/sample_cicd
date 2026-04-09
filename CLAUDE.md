@@ -45,7 +45,7 @@ cd infra && terraform workspace select dev && terraform plan -var-file=dev.tfvar
 graph LR
     INET[Internet] --> R53[Route 53] --> WAF[WAF] --> CF[CloudFront<br>ACM HTTPS]
     CF --> S3_UI[S3 Web UI]
-    CF -->|"/tasks*"| APIGW[API Gateway<br>REST API + Cache] --> ALB[ALB] --> ECS[ECS Fargate<br>FastAPI + JWT + X-Ray]
+    CF -->|"/api/tasks*"| APIGW[API Gateway<br>REST API + Cache] --> ALB[ALB] --> ECS[ECS Fargate<br>FastAPI + JWT + X-Ray]
     ECS --> REDIS[ElastiCache Redis] --> RDS[RDS PostgreSQL]
     ECS --> S3[S3] & SQS[SQS] & EB[EventBridge]
     SQS --> L1[Lambda] & EB --> L2[Lambda] & L3[Lambda cleanup]
