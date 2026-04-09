@@ -17,7 +17,7 @@ CI/CD学習を目的としたサーバーレスコンテナアプリケーショ
 | v7 | セキュリティ強化 + 認証 (Cognito, JWT, WAF) | 完了 |
 | v8 | HTTPS + カスタムドメイン + Remote State (Route 53, ACM, S3 Backend, DynamoDB Lock) | 完了 |
 | v9 | CI/CD 完全自動化 + セキュリティスキャン (CodeDeploy B/G, OIDC, Trivy, tfsec, Infracost, Terraform CI/CD) | 完了 |
-| v10 | API Gateway + ElastiCache Redis + レート制限 (REST API, Usage Plans, Cache-aside, Graceful degradation) | 開発中 |
+| v10 | API Gateway + ElastiCache Redis + レート制限 (REST API, Usage Plans, Cache-aside, Graceful degradation) | 完了 |
 
 ## Common Commands
 
@@ -100,8 +100,8 @@ graph LR
 
 ### CI/CD Pipeline
 
-**CI** (全 push / PR): `ruff` → `pytest` (84 tests) → `docker build` → `npm build`
-**CD** (main のみ): ECR push → ECS deploy → Lambda update → Frontend S3 sync (config.js にカスタムドメイン + Cognito 注入) + CloudFront invalidation
+**CI** (PR のみ): `ruff` → `pytest` (84 tests) → `docker build` + Trivy → `tfsec` → `terraform plan` → Infracost → `npm build`
+**CD** (main push で直接実行): Terraform apply → ECR push → CodeDeploy B/G → Lambda update → Frontend S3 sync (config.js にカスタムドメイン + Cognito 注入) + CloudFront invalidation
 
 ### Test Structure
 
