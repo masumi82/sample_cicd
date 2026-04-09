@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   deploy:
+    needs: terraform-apply
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment: dev
@@ -156,7 +157,7 @@ jobs:
             --paths "/*"
 
   terraform-apply:
-    needs: deploy
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment: dev
     env:
