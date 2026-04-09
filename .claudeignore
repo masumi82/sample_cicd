@@ -1,0 +1,22 @@
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+
+# Terraform state (contains real AWS resource IDs)
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Build artifacts and dependencies
+node_modules/
+__pycache__/
+.venv/
+frontend/dist/
+
+# Binary files (not useful for Claude context)
+*.png
+*.jpg
+*.gif
+*.zip

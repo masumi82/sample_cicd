@@ -19,6 +19,9 @@ __pycache__/
 *.pem
 *.key
 
+# Claude Code personal settings (not for commit)
+.claude/settings.local.json
+
 # IDE
 .vscode/
 .idea/

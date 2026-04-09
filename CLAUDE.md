@@ -18,6 +18,7 @@ CI/CD学習を目的としたサーバーレスコンテナアプリケーショ
 | v8 | HTTPS + カスタムドメイン + Remote State (Route 53, ACM, S3 Backend, DynamoDB Lock) | 完了 |
 | v9 | CI/CD 完全自動化 + セキュリティスキャン (CodeDeploy B/G, OIDC, Trivy, tfsec, Infracost, Terraform CI/CD) | 完了 |
 | v10 | API Gateway + ElastiCache Redis + レート制限 (REST API, Usage Plans, Cache-aside, Graceful degradation) | 完了 |
+| v11 | 組織レベル Claude Code ベストプラクティス (Hooks, .claudeignore, Team Settings, Skills, Guide) | 進行中 |
 
 ## Common Commands
 
@@ -158,3 +159,23 @@ Source code, code comments, and technical identifiers remain in English.
   - CloudFront ドメイン → `dXXXXXXXXXXXXX.cloudfront.net`
   - Hosted Zone ID → `Z0XXXXXXXXXXXXXXXXXX`
   - `git diff --staged` で確認してからコミット
+
+## Team Conventions (v11)
+
+### Hooks（自動チェック）
+`.claude/settings.json` で以下のフックが有効:
+- **PreToolUse**: `block-dangerous-git.sh`（`git push --force` 等をブロック）、`security-check.sh`（コミット時の機密スキャン）
+- **PostToolUse**: `auto-format.sh`（`.py` ファイル変更後に ruff 自動実行）
+
+### 設定ファイルの使い分け
+| ファイル | git 管理 | 用途 |
+|---------|:---:|------|
+| `.claude/settings.json` | ✅ | チーム共有（hooks, deny ルール） |
+| `.claude/settings.local.json` | ✕ | 個人設定（allow リスト） |
+
+### チーム向けスキル
+- `/team-onboard` — 新メンバーの環境セットアップチェック
+- `/pr-review` — マルチエージェント並列 PR レビュー（review-senior + review-qa + review-team-lead）
+
+### `.claudeignore`
+機密ファイル（`.env*`, `*.tfstate*`）、ビルド成果物、バイナリを Claude の読み取り対象から除外

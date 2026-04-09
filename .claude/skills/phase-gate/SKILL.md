@@ -28,14 +28,15 @@ All output must be in Japanese.
 | v7 | [x] | [x] | [x] | [x] | [x] |
 | v8 | [x] | [x] | [x] | [x] | [x] |
 | v9 | [x] | [x] | [x] | [x] | [x] |
+| v10 | [x] | [x] | [x] | [x] | [x] |
 
-### 開発中: v10 — API Gateway + ElastiCache Redis + レート制限
+### 開発中: v11 — 組織レベル Claude Code ベストプラクティス
 
-v10 固有の成果物（テンプレートに加えて確認）:
-- Phase 2: `infra/apigateway.tf`, `infra/elasticache.tf` の設計
-- Phase 3: `infra/apigateway.tf` (REST API, Usage Plan, API Key, ステージキャッシュ), `infra/elasticache.tf` (Redis クラスタ, サブネットグループ), `app/services/cache.py` (Redis キャッシュサービス), `app/routers/tasks.py` (cache-aside パターン統合), `infra/webui.tf` (Origin を ALB → API Gateway に変更), `infra/monitoring.tf` (API GW + Redis ダッシュボード・アラーム追加)
-- Phase 4: `tests/test_cache.py` (キャッシュ hit/miss, invalidation, graceful degradation)
-- Phase 5: API Gateway invoke URL 経由の動作確認, Usage Plan (API キーなし → 403), スロットリング (429), Redis キャッシュ hit/miss メトリクス確認
+v11 固有の成果物（テンプレートに加えて確認）:
+- Phase 2: `docs/02_design/architecture_v11.md` (設定階層図), `docs/02_design/infrastructure_v11.md` (ファイルマトリクス), `docs/02_design/cicd_v11.md` (Hooks × CI/CD 統合)
+- Phase 3: `.claudeignore`, `.claude/settings.json` (hooks + deny), `.claude/hooks/` (3 スクリプト), `.claude/skills/team-onboard/`, `.claude/skills/pr-review/`, `.claude/agents/review-team-lead.md`, `docs/guides/claude-code-team-guide_v11.md`, `CLAUDE.md` (Team Conventions), `.gitignore` (settings.local.json 追加)
+- Phase 4: `tests/test_hooks.sh` (hook 自動テスト 26 件), 既存 pytest 84 件回帰確認
+- Phase 5: hook 動作確認, スキル認識確認, 検証記録 17 項目, v11_lesson.md
 
 ### 各フェーズの必須成果物パターン（新バージョン用テンプレート）
 
