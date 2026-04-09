@@ -42,7 +42,7 @@ export function getTasks() {
 }
 
 export function getTask(id) {
-  return request(`/tasks/${id}`);
+  return request(`/api/tasks/${id}`);
 }
 
 export function createTask(data) {
@@ -53,34 +53,34 @@ export function createTask(data) {
 }
 
 export function updateTask(id, data) {
-  return request(`/tasks/${id}`, {
+  return request(`/api/tasks/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
 }
 
 export function deleteTask(id) {
-  return request(`/tasks/${id}`, { method: "DELETE" });
+  return request(`/api/tasks/${id}`, { method: "DELETE" });
 }
 
 // Attachments API
 export function getAttachments(taskId) {
-  return request(`/tasks/${taskId}/attachments`);
+  return request(`/api/tasks/${taskId}/attachments`);
 }
 
 export function createAttachment(taskId, filename, contentType) {
-  return request(`/tasks/${taskId}/attachments`, {
+  return request(`/api/tasks/${taskId}/attachments`, {
     method: "POST",
     body: JSON.stringify({ filename, content_type: contentType }),
   });
 }
 
 export function getAttachment(taskId, attachmentId) {
-  return request(`/tasks/${taskId}/attachments/${attachmentId}`);
+  return request(`/api/tasks/${taskId}/attachments/${attachmentId}`);
 }
 
 export function deleteAttachment(taskId, attachmentId) {
-  return request(`/tasks/${taskId}/attachments/${attachmentId}`, {
+  return request(`/api/tasks/${taskId}/attachments/${attachmentId}`, {
     method: "DELETE",
   });
 }
