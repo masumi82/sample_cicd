@@ -130,17 +130,40 @@ jobs:
           terraform plan -var-file=${{ env.DEPLOY_ENV }}.tfvars -no-color -out=plan.bin 2>&1 | tee plan.txt
           terraform show -json plan.bin > plan.json
 
-      - name: Post Plan to PR
+      - name: Post Plan summary to PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const fs = require('fs');
             const plan = fs.readFileSync('infra/plan.txt', 'utf8');
-            const truncated = plan.length > 60000
-              ? plan.substring(0, 60000) + '\n... (truncated)'
-              : plan;
-            const body = `### Terraform Plan (dev)\n\`\`\`\n${truncated}\n\`\`\``;
+
+            // Extract only the summary line (e.g. "Plan: 2 to add, 1 to change, 0 to destroy.")
+            const summaryMatch = plan.match(/Plan: .+/);
+            const noChanges = plan.includes('No changes.');
+            const summary = noChanges
+              ? 'No changes. Infrastructure is up-to-date.'
+              : (summaryMatch ? summaryMatch[0] : 'Plan completed (see CI logs for details).');
+
+            // Count resource changes by type (safe — no IDs exposed)
+            const addLines = (plan.match(/^\s+#.*will be created$/gm) || []).length;
+            const changeLines = (plan.match(/^\s+#.*will be updated in-place$/gm) || []).length;
+            const destroyLines = (plan.match(/^\s+#.*will be destroyed$/gm) || []).length;
+
+            const body = [
+              '### Terraform Plan (dev)',
+              '',
+              `**${summary}**`,
+              '',
+              '| Action | Count |',
+              '|--------|-------|',
+              `| Add | ${addLines} |`,
+              `| Change | ${changeLines} |`,
+              `| Destroy | ${destroyLines} |`,
+              '',
+              '> Full plan output is available in the CI job logs (not posted here to prevent secret exposure).'
+            ].join('\n');
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

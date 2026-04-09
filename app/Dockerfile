@@ -10,6 +10,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 COPY --from=builder /build/deps /usr/local/lib/python3.12/site-packages/
