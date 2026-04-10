@@ -206,6 +206,12 @@ resource "aws_iam_role_policy" "github_actions" {
           "apigateway:*",
           "elasticache:*",
           "backup:*",
+          "backup-storage:*",
+          "kms:CreateGrant",
+          "kms:GenerateDataKey",
+          "kms:Decrypt",
+          "kms:RetireGrant",
+          "kms:DescribeKey",
           "sts:GetCallerIdentity"
         ]
         Resource = "*"
