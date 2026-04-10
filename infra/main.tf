@@ -52,6 +52,9 @@ provider "aws" {
   }
 }
 
+# v13: Account ID for bucket policies
+data "aws_caller_identity" "current" {}
+
 # Workspace-based naming
 locals {
   env    = terraform.workspace

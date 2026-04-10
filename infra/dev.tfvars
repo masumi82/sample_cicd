@@ -65,3 +65,8 @@ db_deletion_protection     = false
 enable_read_replica        = false
 enable_s3_replication      = false
 s3_versioning_enabled      = true
+
+# v13: Security Monitoring + Compliance
+enable_guardduty              = true
+enable_securityhub            = true
+cloudtrail_log_retention_days = 90

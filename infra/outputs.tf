@@ -153,3 +153,20 @@ output "backup_vault_arn" {
   description = "ARN of the AWS Backup Vault"
   value       = aws_backup_vault.main.arn
 }
+
+# --- v13: Security Monitoring outputs ---
+
+output "cloudtrail_s3_bucket" {
+  description = "S3 bucket for CloudTrail logs"
+  value       = aws_s3_bucket.cloudtrail_logs.id
+}
+
+output "guardduty_detector_id" {
+  description = "GuardDuty Detector ID (empty if disabled)"
+  value       = var.enable_guardduty ? aws_guardduty_detector.main[0].id : ""
+}
+
+output "config_recorder_name" {
+  description = "AWS Config Configuration Recorder name"
+  value       = aws_config_configuration_recorder.main.name
+}
