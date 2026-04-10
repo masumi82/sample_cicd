@@ -39,6 +39,19 @@ provider "aws" {
   region = "us-east-1"
 }
 
+# v12: DR region for S3 Cross-Region Replication
+provider "aws" {
+  alias  = "dr"
+  region = var.dr_region
+
+  default_tags {
+    tags = {
+      Project     = var.project_name
+      Environment = local.env
+    }
+  }
+}
+
 # Workspace-based naming
 locals {
   env    = terraform.workspace

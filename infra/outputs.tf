@@ -141,3 +141,15 @@ output "redis_endpoint" {
   description = "ElastiCache Redis endpoint"
   value       = aws_elasticache_cluster.main.cache_nodes[0].address
 }
+
+# --- v12: DR + Backup outputs ---
+
+output "rds_read_replica_endpoint" {
+  description = "Endpoint of the RDS Read Replica (empty if disabled)"
+  value       = var.enable_read_replica ? aws_db_instance.read_replica[0].endpoint : ""
+}
+
+output "backup_vault_arn" {
+  description = "ARN of the AWS Backup Vault"
+  value       = aws_backup_vault.main.arn
+}

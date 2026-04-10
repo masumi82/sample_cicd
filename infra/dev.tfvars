@@ -22,7 +22,7 @@ log_retention_days        = 7
 lambda_log_retention_days = 7
 cloudfront_price_class    = "PriceClass_100"
 cors_allowed_origins      = ["*"] # dev: all origins allowed
-s3_versioning_enabled     = false
+# s3_versioning_enabled — set in v12 section below
 
 # v6: Observability + Web UI
 alarm_email                      = ""
@@ -58,3 +58,10 @@ apigw_quota_limit          = 10000
 apigw_quota_period         = "DAY"
 app_cache_ttl_list         = 300
 app_cache_ttl_detail       = 600
+
+# v12: Disaster Recovery + Data Protection
+db_backup_retention_period = 7
+db_deletion_protection     = false
+enable_read_replica        = false
+enable_s3_replication      = false
+s3_versioning_enabled      = true

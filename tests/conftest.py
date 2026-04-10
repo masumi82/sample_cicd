@@ -6,7 +6,7 @@ from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.auth import get_current_user
-from app.database import Base, get_db
+from app.database import Base, get_db, get_read_db
 from app.main import app
 
 engine = create_engine(
@@ -27,7 +27,11 @@ def override_get_db():
 
 
 app.dependency_overrides[get_db] = override_get_db
-app.dependency_overrides[get_current_user] = lambda: {"sub": "test-user", "email": "test@example.com"}
+app.dependency_overrides[get_read_db] = override_get_db
+app.dependency_overrides[get_current_user] = lambda: {
+    "sub": "test-user",
+    "email": "test@example.com",
+}
 
 
 @pytest.fixture(autouse=True)

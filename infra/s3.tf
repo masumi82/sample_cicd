@@ -61,6 +61,40 @@ resource "aws_s3_bucket_versioning" "attachments" {
   }
 }
 
+# --- v12: Lifecycle Rules ---
+
+resource "aws_s3_bucket_lifecycle_configuration" "attachments" {
+  bucket = aws_s3_bucket.attachments.id
+
+  # Current versions → Standard-IA after N days
+  rule {
+    id     = "transition-to-ia"
+    status = "Enabled"
+
+    transition {
+      days          = var.s3_lifecycle_ia_days
+      storage_class = "STANDARD_IA"
+    }
+  }
+
+  # Noncurrent versions → Glacier → Delete
+  rule {
+    id     = "noncurrent-lifecycle"
+    status = "Enabled"
+
+    noncurrent_version_transition {
+      noncurrent_days = var.s3_lifecycle_glacier_days
+      storage_class   = "GLACIER"
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = var.s3_lifecycle_expire_days
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.attachments]
+}
+
 # CORS configuration for presigned URL uploads
 resource "aws_s3_bucket_cors_configuration" "attachments" {
   bucket = aws_s3_bucket.attachments.id
