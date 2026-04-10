@@ -71,6 +71,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "attachments" {
     id     = "transition-to-ia"
     status = "Enabled"
 
+    filter {}
+
     transition {
       days          = var.s3_lifecycle_ia_days
       storage_class = "STANDARD_IA"
@@ -81,6 +83,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "attachments" {
   rule {
     id     = "noncurrent-lifecycle"
     status = "Enabled"
+
+    filter {}
 
     noncurrent_version_transition {
       noncurrent_days = var.s3_lifecycle_glacier_days

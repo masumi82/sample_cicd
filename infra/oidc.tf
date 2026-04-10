@@ -205,6 +205,7 @@ resource "aws_iam_role_policy" "github_actions" {
           "scheduler:*",
           "apigateway:*",
           "elasticache:*",
+          "backup:*",
           "sts:GetCallerIdentity"
         ]
         Resource = "*"
