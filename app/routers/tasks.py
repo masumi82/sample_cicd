@@ -7,7 +7,7 @@ import logging
 import os
 
 from app.auth import get_current_user
-from app.database import get_db
+from app.database import get_db, get_read_db
 from app.models import Attachment, Task
 from app.schemas import TaskCreate, TaskResponse, TaskUpdate
 from app.services.cache import cache_delete, cache_get, cache_set
@@ -23,11 +23,13 @@ CACHE_TTL_DETAIL = int(os.environ.get("CACHE_TTL_DETAIL", "600"))
 
 
 @router.get("", response_model=list[TaskResponse])
-def list_tasks(db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)):
+def list_tasks(
+    db: Session = Depends(get_read_db), _user: dict | None = Depends(get_current_user)
+):
     """Return all tasks.
 
     Args:
-        db: Database session.
+        db: Database session (read replica or primary).
 
     Returns:
         List of all tasks.
@@ -37,12 +39,20 @@ def list_tasks(db: Session = Depends(get_db), _user: dict | None = Depends(get_c
         return cached
 
     tasks = db.query(Task).all()
-    cache_set("tasks:list", [TaskResponse.model_validate(t).model_dump() for t in tasks], ttl=CACHE_TTL_LIST)
+    cache_set(
+        "tasks:list",
+        [TaskResponse.model_validate(t).model_dump() for t in tasks],
+        ttl=CACHE_TTL_LIST,
+    )
     return tasks
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(task_in: TaskCreate, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)) -> Task:
+def create_task(
+    task_in: TaskCreate,
+    db: Session = Depends(get_db),
+    _user: dict | None = Depends(get_current_user),
+) -> Task:
     """Create a new task.
 
     Args:
@@ -62,12 +72,16 @@ def create_task(task_in: TaskCreate, db: Session = Depends(get_db), _user: dict 
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_task(task_id: int, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)):
+def get_task(
+    task_id: int,
+    db: Session = Depends(get_read_db),
+    _user: dict | None = Depends(get_current_user),
+):
     """Get a single task by ID.
 
     Args:
         task_id: The task ID.
-        db: Database session.
+        db: Database session (read replica or primary).
 
     Returns:
         The requested task.
@@ -82,13 +96,20 @@ def get_task(task_id: int, db: Session = Depends(get_db), _user: dict | None = D
     task = db.query(Task).filter(Task.id == task_id).first()
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    cache_set(f"tasks:{task_id}", TaskResponse.model_validate(task).model_dump(), ttl=CACHE_TTL_DETAIL)
+    cache_set(
+        f"tasks:{task_id}",
+        TaskResponse.model_validate(task).model_dump(),
+        ttl=CACHE_TTL_DETAIL,
+    )
     return task
 
 
 @router.put("/{task_id}", response_model=TaskResponse)
 def update_task(
-    task_id: int, task_in: TaskUpdate, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user),
+    task_id: int,
+    task_in: TaskUpdate,
+    db: Session = Depends(get_db),
+    _user: dict | None = Depends(get_current_user),
 ) -> Task:
     """Update an existing task (partial update).
 
@@ -123,7 +144,11 @@ def update_task(
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(task_id: int, db: Session = Depends(get_db), _user: dict | None = Depends(get_current_user)) -> None:
+def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    _user: dict | None = Depends(get_current_user),
+) -> None:
     """Delete a task by ID.
 
     Args:

@@ -299,6 +299,50 @@ resource "aws_cloudwatch_dashboard" "main" {
   })
 }
 
+# --- v12: Separate dashboard for Read Replica (conditional) ---
+
+resource "aws_cloudwatch_dashboard" "replica" {
+  count          = var.enable_read_replica ? 1 : 0
+  dashboard_name = "${local.prefix}-replica-dashboard"
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          title  = "RDS Replica Lag"
+          region = var.aws_region
+          period = 300
+          stat   = "Average"
+          metrics = [
+            ["AWS/RDS", "ReplicaLag", "DBInstanceIdentifier", aws_db_instance.read_replica[0].identifier]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 12
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          title  = "RDS Replica CPU Utilization"
+          region = var.aws_region
+          period = 300
+          stat   = "Average"
+          metrics = [
+            ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_db_instance.read_replica[0].identifier]
+          ]
+        }
+      }
+    ]
+  })
+}
+
 # ============================
 # CloudWatch Alarms (12 + 4 v10)
 # ============================
@@ -666,6 +710,32 @@ resource "aws_cloudwatch_metric_alarm" "redis_evictions" {
   treat_missing_data  = "notBreaching"
   dimensions = {
     CacheClusterId = aws_elasticache_cluster.main.cluster_id
+  }
+  alarm_actions = [aws_sns_topic.alarm_notifications.arn]
+  ok_actions    = [aws_sns_topic.alarm_notifications.arn]
+
+  tags = {
+    Project     = var.project_name
+    Environment = local.env
+  }
+}
+
+# --- v12: RDS Read Replica Alarm (conditional) ---
+
+resource "aws_cloudwatch_metric_alarm" "rds_replica_lag" {
+  count               = var.enable_read_replica ? 1 : 0
+  alarm_name          = "${local.prefix}-rds-replica-lag"
+  alarm_description   = "RDS Read Replica lag exceeds threshold"
+  namespace           = "AWS/RDS"
+  metric_name         = "ReplicaLag"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  threshold           = var.alarm_replica_lag_threshold
+  period              = 300
+  evaluation_periods  = 2
+  statistic           = "Average"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.read_replica[0].identifier
   }
   alarm_actions = [aws_sns_topic.alarm_notifications.arn]
   ok_actions    = [aws_sns_topic.alarm_notifications.arn]

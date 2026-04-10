@@ -140,7 +140,7 @@ variable "cors_allowed_origins" {
 variable "s3_versioning_enabled" {
   description = "Enable S3 bucket versioning"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # --- v6: Observability + Web UI ---
@@ -324,4 +324,72 @@ variable "alarm_apigw_latency_threshold" {
   description = "Threshold for API Gateway integration latency alarm (ms)"
   type        = number
   default     = 5000
+}
+
+# --- v12: Disaster Recovery + Data Protection ---
+
+variable "db_backup_retention_period" {
+  description = "RDS backup retention period in days"
+  type        = number
+  default     = 7
+}
+
+variable "db_deletion_protection" {
+  description = "Enable RDS deletion protection"
+  type        = bool
+  default     = false
+}
+
+variable "enable_read_replica" {
+  description = "Create RDS Read Replica for read scaling"
+  type        = bool
+  default     = false
+}
+
+variable "enable_s3_replication" {
+  description = "Enable S3 Cross-Region Replication for DR"
+  type        = bool
+  default     = false
+}
+
+variable "dr_region" {
+  description = "DR region for S3 Cross-Region Replication"
+  type        = string
+  default     = "us-west-2"
+}
+
+variable "backup_retention_daily" {
+  description = "AWS Backup daily backup retention in days"
+  type        = number
+  default     = 7
+}
+
+variable "backup_retention_weekly" {
+  description = "AWS Backup weekly backup retention in days"
+  type        = number
+  default     = 30
+}
+
+variable "s3_lifecycle_ia_days" {
+  description = "Days before transitioning current S3 objects to Standard-IA"
+  type        = number
+  default     = 90
+}
+
+variable "s3_lifecycle_glacier_days" {
+  description = "Days before transitioning noncurrent S3 versions to Glacier"
+  type        = number
+  default     = 30
+}
+
+variable "s3_lifecycle_expire_days" {
+  description = "Days before deleting noncurrent S3 versions"
+  type        = number
+  default     = 90
+}
+
+variable "alarm_replica_lag_threshold" {
+  description = "Threshold for RDS ReplicaLag alarm (seconds)"
+  type        = number
+  default     = 30
 }

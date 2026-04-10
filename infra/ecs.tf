@@ -78,6 +78,10 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "CACHE_TTL_DETAIL"
           value = tostring(var.app_cache_ttl_detail)
+        },
+        {
+          name  = "DB_READ_HOST"
+          value = var.enable_read_replica ? aws_db_instance.read_replica[0].address : ""
         }
       ]
 
