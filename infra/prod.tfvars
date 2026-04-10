@@ -63,3 +63,8 @@ apigw_quota_limit          = 50000
 apigw_quota_period         = "DAY"
 app_cache_ttl_list         = 300
 app_cache_ttl_detail       = 600
+
+# v13: Security Monitoring + Compliance
+enable_guardduty              = true
+enable_securityhub            = true
+cloudtrail_log_retention_days = 365

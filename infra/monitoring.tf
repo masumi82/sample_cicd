@@ -294,6 +294,41 @@ resource "aws_cloudwatch_dashboard" "main" {
             ["AWS/ElastiCache", "Evictions", "CacheClusterId", aws_elasticache_cluster.main.cluster_id]
           ]
         }
+      },
+      # --- v13: Row 9 — Security Monitoring ---
+      {
+        type   = "metric"
+        x      = 0
+        y      = 42
+        width  = 12
+        height = 6
+        properties = {
+          title  = "CloudTrail Events"
+          region = var.aws_region
+          period = 3600
+          stat   = "Sum"
+          view   = "timeSeries"
+          metrics = [
+            ["AWS/CloudTrail", "EventCount"]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 12
+        y      = 42
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Config Compliance"
+          region = var.aws_region
+          period = 3600
+          stat   = "Maximum"
+          view   = "timeSeries"
+          metrics = [
+            ["AWS/Config", "ComplianceByConfigRule"]
+          ]
+        }
       }
     ]
   })

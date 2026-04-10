@@ -393,3 +393,29 @@ variable "alarm_replica_lag_threshold" {
   type        = number
   default     = 30
 }
+
+# --- v13: Security Monitoring + Compliance ---
+
+variable "enable_guardduty" {
+  description = "Enable GuardDuty threat detection"
+  type        = bool
+  default     = true
+}
+
+variable "enable_securityhub" {
+  description = "Enable Security Hub with CIS and FSBP standards"
+  type        = bool
+  default     = true
+}
+
+variable "cloudtrail_log_retention_days" {
+  description = "Days to retain CloudTrail logs in S3"
+  type        = number
+  default     = 90
+}
+
+variable "cloudtrail_cw_log_retention_days" {
+  description = "CloudWatch Logs retention for CloudTrail"
+  type        = number
+  default     = 14
+}

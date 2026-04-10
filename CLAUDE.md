@@ -19,7 +19,8 @@ CI/CD学習を目的としたサーバーレスコンテナアプリケーショ
 | v9 | CI/CD 完全自動化 + セキュリティスキャン (CodeDeploy B/G, OIDC, Trivy, tfsec, Infracost, Terraform CI/CD) | 完了 |
 | v10 | API Gateway + ElastiCache Redis + レート制限 (REST API, Usage Plans, Cache-aside, Graceful degradation) | 完了 |
 | v11 | 組織レベル Claude Code ベストプラクティス (Hooks, .claudeignore, Team Settings, Skills, Guide) | 完了 |
-| v12 | 災害復旧 + データ保護 (AWS Backup, RDS Read Replica, S3 CRR, S3 Versioning/Lifecycle, 読み書き分離) | 進行中 |
+| v12 | 災害復旧 + データ保護 (AWS Backup, RDS Read Replica, S3 CRR, S3 Versioning/Lifecycle, 読み書き分離) | 完了 |
+| v13 | セキュリティ監視 + コンプライアンス (CloudTrail, GuardDuty, AWS Config, Security Hub, EventBridge→SNS) | 進行中 |
 
 ## Common Commands
 
