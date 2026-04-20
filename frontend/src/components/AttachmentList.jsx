@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { getAttachments, getAttachment, deleteAttachment } from "../api/client";
 import { InlineBanner, Spinner } from "./ui";
 
+const DATE_FORMATTER = new Intl.DateTimeFormat();
+
 function FileIcon({ type }) {
   const isImage = type && type.startsWith("image/");
   const isPdf = type === "application/pdf";
@@ -95,7 +97,7 @@ export default function AttachmentList({ taskId, refreshKey }) {
               {att.filename}
             </p>
             <p className="text-[12px] text-[color:var(--color-ink-3)] tracking-tight mt-0.5 m-0">
-              {att.content_type} · {new Date(att.created_at).toLocaleDateString()}
+              {att.content_type} · {DATE_FORMATTER.format(new Date(att.created_at))}
             </p>
           </div>
           <div className="flex gap-2.5 items-center">

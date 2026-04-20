@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, memo } from "react";
+import { useNavigate } from "react-router-dom";
 import { getTasks } from "../api/client";
 import {
   PillButton,
@@ -14,13 +14,18 @@ const FILTERS = [
   { key: "completed", label: "Completed" },
 ];
 
+const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+});
+
 function heroTitle(activeCount) {
   if (activeCount === 0) return "All caught up.";
   if (activeCount === 1) return "One thing today.";
   return `${activeCount} things today.`;
 }
 
-function TaskRow({ task, onOpen }) {
+const TaskRow = memo(function TaskRow({ task, onOpen }) {
   const handleActivate = (e) => {
     if (e.target.closest("button")) return;
     onOpen(task);
@@ -56,15 +61,12 @@ function TaskRow({ task, onOpen }) {
         )}
       </div>
       <div className="text-apple-caption">
-        {new Date(task.created_at).toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-        })}
+        {DATE_FORMATTER.format(new Date(task.created_at))}
       </div>
       <span className="text-[color:var(--color-gray-3)] text-base leading-none">›</span>
     </div>
   );
-}
+});
 
 export default function TaskList() {
   const [tasks, setTasks] = useState([]);
@@ -80,12 +82,23 @@ export default function TaskList() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = tasks.filter((t) => {
-    if (filter === "pending") return !t.completed;
-    if (filter === "completed") return t.completed;
-    return true;
-  });
-  const activeCount = tasks.filter((t) => !t.completed).length;
+  const handleOpen = useCallback(
+    (task) => navigate(`/tasks/${task.id}`),
+    [navigate]
+  );
+
+  let activeCount = 0;
+  const filtered = [];
+  for (const t of tasks) {
+    if (!t.completed) activeCount++;
+    if (
+      filter === "all" ||
+      (filter === "pending" && !t.completed) ||
+      (filter === "completed" && t.completed)
+    ) {
+      filtered.push(t);
+    }
+  }
 
   if (loading) {
     return (
@@ -170,11 +183,7 @@ export default function TaskList() {
           </div>
         ) : (
           filtered.map((t) => (
-            <TaskRow
-              key={t.id}
-              task={t}
-              onOpen={(task) => navigate(`/tasks/${task.id}`)}
-            />
+            <TaskRow key={t.id} task={t} onOpen={handleOpen} />
           ))
         )}
       </div>
