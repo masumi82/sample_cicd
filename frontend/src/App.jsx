@@ -1,13 +1,15 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import PrivateRoute from "./auth/PrivateRoute";
-import Login from "./auth/Login";
-import Signup from "./auth/Signup";
-import ConfirmSignup from "./auth/ConfirmSignup";
-import TaskList from "./components/TaskList";
-import TaskForm from "./components/TaskForm";
-import TaskDetail from "./components/TaskDetail";
-import { GlobalNav } from "./components/ui";
+import { GlobalNav, Spinner } from "./components/ui";
+
+const Login = lazy(() => import("./auth/Login"));
+const Signup = lazy(() => import("./auth/Signup"));
+const ConfirmSignup = lazy(() => import("./auth/ConfirmSignup"));
+const TaskList = lazy(() => import("./components/TaskList"));
+const TaskForm = lazy(() => import("./components/TaskForm"));
+const TaskDetail = lazy(() => import("./components/TaskDetail"));
 
 function Header() {
   const { user, logout, authEnabled } = useAuth();
@@ -34,41 +36,51 @@ function Footer() {
   );
 }
 
+function RouteFallback() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <Spinner size={28} color="var(--color-apple-blue)" />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <div className="min-h-screen bg-[var(--color-bg-light)] flex flex-col">
         <Header />
         <main className="flex-1">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/confirm" element={<ConfirmSignup />} />
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <TaskList />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/tasks/new"
-              element={
-                <PrivateRoute>
-                  <TaskForm />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/tasks/:id"
-              element={
-                <PrivateRoute>
-                  <TaskDetail />
-                </PrivateRoute>
-              }
-            />
-          </Routes>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/confirm" element={<ConfirmSignup />} />
+              <Route
+                path="/"
+                element={
+                  <PrivateRoute>
+                    <TaskList />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/tasks/new"
+                element={
+                  <PrivateRoute>
+                    <TaskForm />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/tasks/:id"
+                element={
+                  <PrivateRoute>
+                    <TaskDetail />
+                  </PrivateRoute>
+                }
+              />
+            </Routes>
+          </Suspense>
         </main>
         <Footer />
       </div>
