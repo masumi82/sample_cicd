@@ -1,8 +1,11 @@
-import {
-  CognitoUserPool,
-  CognitoUser,
-  AuthenticationDetails,
-} from "amazon-cognito-identity-js";
+// amazon-cognito-identity-js は ~60KB のため、初回利用時まで動的 import で遅延読み込みする
+let _modulePromise = null;
+function loadCognito() {
+  if (!_modulePromise) {
+    _modulePromise = import("amazon-cognito-identity-js");
+  }
+  return _modulePromise;
+}
 
 const getConfig = () => {
   const cfg = window.APP_CONFIG || {};
@@ -12,29 +15,32 @@ const getConfig = () => {
   };
 };
 
+// ライブラリを読み込まずに同期判定できるよう設定の有無だけ確認
+export function isAuthConfigured() {
+  const { UserPoolId, ClientId } = getConfig();
+  return Boolean(UserPoolId && ClientId);
+}
+
 let _userPool = null;
 
-export function getUserPool() {
-  if (!_userPool) {
-    const config = getConfig();
-    if (!config.UserPoolId || !config.ClientId) return null;
-    _userPool = new CognitoUserPool(config);
-  }
+export async function getUserPool() {
+  if (_userPool) return _userPool;
+  const config = getConfig();
+  if (!config.UserPoolId || !config.ClientId) return null;
+  const { CognitoUserPool } = await loadCognito();
+  _userPool = new CognitoUserPool(config);
   return _userPool;
 }
 
-export function getCurrentUser() {
-  const pool = getUserPool();
+export async function getCurrentUser() {
+  const pool = await getUserPool();
   return pool ? pool.getCurrentUser() : null;
 }
 
-export function getIdToken() {
-  return new Promise((resolve, reject) => {
-    const user = getCurrentUser();
-    if (!user) {
-      resolve(null);
-      return;
-    }
+export async function getIdToken() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return new Promise((resolve) => {
     user.getSession((err, session) => {
       if (err || !session || !session.isValid()) {
         resolve(null);
@@ -45,13 +51,11 @@ export function getIdToken() {
   });
 }
 
-export function signIn(email, password) {
+export async function signIn(email, password) {
+  const pool = await getUserPool();
+  if (!pool) throw new Error("Cognito not configured");
+  const { CognitoUser, AuthenticationDetails } = await loadCognito();
   return new Promise((resolve, reject) => {
-    const pool = getUserPool();
-    if (!pool) {
-      reject(new Error("Cognito not configured"));
-      return;
-    }
     const user = new CognitoUser({ Username: email, Pool: pool });
     const authDetails = new AuthenticationDetails({
       Username: email,
@@ -64,13 +68,10 @@ export function signIn(email, password) {
   });
 }
 
-export function signUp(email, password) {
+export async function signUp(email, password) {
+  const pool = await getUserPool();
+  if (!pool) throw new Error("Cognito not configured");
   return new Promise((resolve, reject) => {
-    const pool = getUserPool();
-    if (!pool) {
-      reject(new Error("Cognito not configured"));
-      return;
-    }
     pool.signUp(email, password, [], null, (err, result) => {
       if (err) {
         reject(err);
@@ -81,13 +82,11 @@ export function signUp(email, password) {
   });
 }
 
-export function confirmSignUp(email, code) {
+export async function confirmSignUp(email, code) {
+  const pool = await getUserPool();
+  if (!pool) throw new Error("Cognito not configured");
+  const { CognitoUser } = await loadCognito();
   return new Promise((resolve, reject) => {
-    const pool = getUserPool();
-    if (!pool) {
-      reject(new Error("Cognito not configured"));
-      return;
-    }
     const user = new CognitoUser({ Username: email, Pool: pool });
     user.confirmRegistration(code, true, (err, result) => {
       if (err) {
@@ -99,7 +98,7 @@ export function confirmSignUp(email, code) {
   });
 }
 
-export function signOut() {
-  const user = getCurrentUser();
+export async function signOut() {
+  const user = await getCurrentUser();
   if (user) user.signOut();
 }

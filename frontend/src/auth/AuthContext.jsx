@@ -6,7 +6,7 @@ import {
   signUp as cognitoSignUp,
   confirmSignUp as cognitoConfirmSignUp,
   signOut as cognitoSignOut,
-  getUserPool,
+  isAuthConfigured,
 } from "./cognito";
 
 const AuthContext = createContext(null);
@@ -14,24 +14,32 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const authEnabled = !!getUserPool();
+  const authEnabled = isAuthConfigured();
 
   useEffect(() => {
     if (!authEnabled) {
       setLoading(false);
       return;
     }
-    const cognitoUser = getCurrentUser();
-    if (cognitoUser) {
-      cognitoUser.getSession((err, session) => {
-        if (!err && session && session.isValid()) {
-          setUser({ email: cognitoUser.getUsername() });
-        }
+    let cancelled = false;
+    (async () => {
+      const cognitoUser = await getCurrentUser();
+      if (cancelled) return;
+      if (cognitoUser) {
+        cognitoUser.getSession((err, session) => {
+          if (cancelled) return;
+          if (!err && session && session.isValid()) {
+            setUser({ email: cognitoUser.getUsername() });
+          }
+          setLoading(false);
+        });
+      } else {
         setLoading(false);
-      });
-    } else {
-      setLoading(false);
-    }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [authEnabled]);
 
   const login = useCallback(async (email, password) => {
@@ -47,8 +55,8 @@ export function AuthProvider({ children }) {
     await cognitoConfirmSignUp(email, code);
   }, []);
 
-  const logout = useCallback(() => {
-    cognitoSignOut();
+  const logout = useCallback(async () => {
+    await cognitoSignOut();
     setUser(null);
   }, []);
 
