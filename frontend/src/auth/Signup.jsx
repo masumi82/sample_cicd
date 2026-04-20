@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import {
+  PillButton,
+  Field,
+  TextInput,
+  InlineBanner,
+  Spinner,
+  HeroShell,
+} from "../components/ui";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -14,12 +22,14 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
-
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
     setLoading(true);
     try {
       await signup(email, password);
@@ -32,73 +42,70 @@ export default function Signup() {
   };
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="mb-6 text-2xl font-bold text-zinc-900">Sign Up</h1>
-
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-zinc-700">
-            Email
-          </label>
-          <input
-            id="email"
+    <HeroShell
+      eyebrow="Task Manager"
+      title="Create your account."
+      subtitle="One place for everything you want to finish."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="text-[color:var(--color-apple-link)] no-underline hover:underline"
+          >
+            Sign in ›
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
+        {error && <InlineBanner tone="error">{error}</InlineBanner>}
+        <Field label="Email" htmlFor="signup-email" required>
+          <TextInput
+            id="signup-email"
             type="email"
-            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             placeholder="you@example.com"
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-zinc-700">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
             required
-            minLength={8}
+          />
+        </Field>
+        <Field
+          label="Password"
+          htmlFor="signup-password"
+          hint="Min 8 chars · uppercase · lowercase · number · symbol"
+          required
+        >
+          <TextInput
+            id="signup-password"
+            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-          <p className="mt-1 text-xs text-zinc-400">Min 8 chars, uppercase, lowercase, number, symbol</p>
-        </div>
-        <div>
-          <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-zinc-700">
-            Confirm Password
-          </label>
-          <input
-            id="confirmPassword"
-            type="password"
+            minLength={8}
             required
+          />
+        </Field>
+        <Field label="Confirm password" htmlFor="signup-confirm" required>
+          <TextInput
+            id="signup-confirm"
+            type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            required
           />
+        </Field>
+        <div className="flex justify-end mt-1">
+          <PillButton type="submit" variant="primary" size="md" disabled={loading}>
+            {loading ? (
+              <>
+                <Spinner size={12} color="#fff" /> Creating…
+              </>
+            ) : (
+              <>Continue ›</>
+            )}
+          </PillButton>
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
-        >
-          {loading ? "Creating account..." : "Sign Up"}
-        </button>
       </form>
-
-      <p className="mt-4 text-center text-sm text-zinc-500">
-        Already have an account?{" "}
-        <Link to="/login" className="font-medium text-primary hover:text-primary/80">
-          Log in
-        </Link>
-      </p>
-    </div>
+    </HeroShell>
   );
 }

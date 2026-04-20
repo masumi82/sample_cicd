@@ -1,10 +1,174 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Apple Design System Tokens (v14 - Claude Design refactor)
+   Based on apple.com marketing site + Apple HIG
+   ============================================================ */
+
 @theme {
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-danger: #ef4444;
-  --color-danger-hover: #dc2626;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  /* Font families - system stack with SF Pro / Noto Sans JP fallbacks */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Noto Sans JP", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Noto Sans JP", "Helvetica Neue", sans-serif;
+  --font-mono: "SF Mono", "Roboto Mono", ui-monospace, Menlo, Monaco, Consolas, monospace;
+
+  /* Apple system grays */
+  --color-gray-1: #8e8e93;
+  --color-gray-2: #aeaeb2;
+  --color-gray-3: #c7c7cc;
+  --color-gray-4: #d1d1d6;
+  --color-gray-5: #e5e5ea;
+  --color-gray-6: #f2f2f7;
+
+  /* Apple backgrounds */
+  --color-bg-light: #fbfbfd;
+  --color-bg-gray: #f5f5f7;
+
+  /* Apple text colors */
+  --color-ink-1: #1d1d1f;
+  --color-ink-2: #6e6e73;
+  --color-ink-3: #86868b;
+
+  /* Apple accent palette */
+  --color-apple-blue: #0071e3;
+  --color-apple-blue-hover: #0077ed;
+  --color-apple-link: #06c;
+  --color-apple-red: #ff3b30;
+  --color-apple-red-strong: #d70015;
+  --color-apple-orange: #ff9500;
+  --color-apple-green: #34c759;
+  --color-apple-green-hover: #30b350;
+
+  /* Semantic aliases (override Tailwind defaults) */
+  --color-primary: #0071e3;
+  --color-primary-hover: #0077ed;
+  --color-danger: #ff3b30;
+  --color-danger-hover: #d70015;
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+
+  /* Apple border / divider */
+  --color-border-ap: #d2d2d7;
+
+  /* Apple radii (Tailwind v4 custom radii) */
+  --radius-ap-sm: 8px;
+  --radius-ap-md: 12px;
+  --radius-ap-lg: 18px;
+  --radius-ap-xl: 22px;
+  --radius-ap-2xl: 28px;
+  --radius-pill: 980px;
+
+  /* Apple motion */
+  --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Apple animations */
+  --animate-fade-in-up: fadeInUp 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-toast-in: toastIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-apple-spin: appleSpin 800ms linear infinite;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 14px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes appleSpin {
+  from { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   Base body — Apple tone, tight letter-spacing, antialiasing
+   ============================================================ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg-light);
+  color: var(--color-ink-1);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  letter-spacing: -0.022em;
+  line-height: 1.47;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ============================================================
+   Reusable Apple primitives via Tailwind @utility
+   ============================================================ */
+
+@utility pill {
+  border-radius: 980px;
+}
+
+@utility card-apple {
+  background: #ffffff;
+  border-radius: 22px;
+}
+
+@utility nav-blur {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+@utility tracking-apple {
+  letter-spacing: -0.022em;
+}
+
+@utility tracking-apple-tight {
+  letter-spacing: -0.035em;
+}
+
+@utility tracking-apple-headline {
+  letter-spacing: -0.03em;
+}
+
+@utility text-apple-hero {
+  font-size: clamp(48px, 6vw, 80px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+@utility text-apple-h1 {
+  font-size: clamp(40px, 4.5vw, 56px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+
+@utility text-apple-h2 {
+  font-size: clamp(32px, 3.6vw, 48px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+@utility text-apple-intro {
+  font-size: 19px;
+  letter-spacing: -0.021em;
+  line-height: 1.38;
+  color: #6e6e73;
+}
+
+@utility text-apple-body {
+  font-size: 17px;
+  letter-spacing: -0.022em;
+  line-height: 1.47;
+}
+
+@utility text-apple-caption {
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  color: #86868b;
 }

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { createAttachment, uploadToPresignedUrl } from "../api/client";
+import { InlineBanner, Spinner } from "./ui";
 
 const ALLOWED_TYPES = [
   "image/jpeg",
@@ -12,17 +13,17 @@ const ALLOWED_TYPES = [
 export default function AttachmentUpload({ taskId, onUploaded }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  const [drag, setDrag] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
+  const handleFile = async (file) => {
     if (!file) return;
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       setError(
         `File type "${file.type}" is not supported. Allowed: ${ALLOWED_TYPES.join(", ")}`
       );
-      fileInputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -37,37 +38,71 @@ export default function AttachmentUpload({ taskId, onUploaded }) {
       setError(err.message);
     } finally {
       setUploading(false);
-      fileInputRef.current.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
+  const handlePick = () => {
+    if (!uploading && fileInputRef.current) fileInputRef.current.click();
+  };
+
   return (
-    <div className="space-y-3">
-      <label
-        className={`group inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 px-4 py-2.5 text-sm font-medium transition-all hover:border-primary hover:bg-primary/5 hover:text-primary ${
-          uploading ? "pointer-events-none opacity-60" : "text-zinc-600"
-        }`}
+    <div className="flex flex-col gap-3">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={handlePick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handlePick();
+          }
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDrag(false);
+          const file = e.dataTransfer.files?.[0];
+          if (file) handleFile(file);
+        }}
+        className={`rounded-[18px] px-[22px] py-7 text-center cursor-pointer transition-all duration-200 ease-[var(--ease-apple)] ${
+          drag
+            ? "border-[1.5px] border-dashed border-[var(--color-apple-blue)] bg-[rgba(0,113,227,0.04)]"
+            : "border-[1.5px] border-dashed border-[var(--color-border-ap)] bg-[var(--color-bg-light)]"
+        } ${uploading ? "pointer-events-none opacity-60" : ""}`}
       >
         {uploading ? (
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-primary" />
+          <div className="flex items-center justify-center gap-2">
+            <Spinner size={16} color="var(--color-apple-blue)" />
+            <span className="text-apple-body">Uploading…</span>
+          </div>
         ) : (
-          <svg className="h-4 w-4 transition-colors group-hover:text-primary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-          </svg>
+          <>
+            <p className="text-[17px] tracking-apple text-[color:var(--color-ink-1)] m-0 mb-1">
+              Drop a file to attach.
+            </p>
+            <p className="text-[13px] text-[color:var(--color-ink-3)] tracking-tight m-0">
+              Or{" "}
+              <span className="text-[color:var(--color-apple-link)]">choose a file</span>
+              {" · "}JPG, PNG, GIF, PDF, TXT
+            </p>
+          </>
         )}
-        {uploading ? "Uploading..." : "Upload File"}
         <input
           ref={fileInputRef}
           type="file"
-          onChange={handleUpload}
-          disabled={uploading}
           className="hidden"
           accept={ALLOWED_TYPES.join(",")}
+          disabled={uploading}
+          onChange={(e) => handleFile(e.target.files?.[0])}
         />
-      </label>
-      {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
-      )}
+      </div>
+
+      {error && <InlineBanner tone="error">{error}</InlineBanner>}
     </div>
   );
 }

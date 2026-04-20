@@ -1,4 +1,4 @@
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import PrivateRoute from "./auth/PrivateRoute";
 import Login from "./auth/Login";
@@ -7,52 +7,70 @@ import ConfirmSignup from "./auth/ConfirmSignup";
 import TaskList from "./components/TaskList";
 import TaskForm from "./components/TaskForm";
 import TaskDetail from "./components/TaskDetail";
+import { GlobalNav } from "./components/ui";
 
 function Header() {
   const { user, logout, authEnabled } = useAuth();
+  const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link to="/" className="text-xl font-bold tracking-tight text-zinc-900 hover:text-primary transition-colors">
-          Task Manager
-        </Link>
-        <div className="flex items-center gap-3">
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500">
-            sample_cicd v7
-          </span>
-          {authEnabled && user && (
-            <>
-              <span className="text-xs text-zinc-500">{user.email}</span>
-              <button
-                onClick={logout}
-                className="rounded-lg border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
-              >
-                Logout
-              </button>
-            </>
-          )}
-        </div>
+    <GlobalNav
+      user={user}
+      authEnabled={authEnabled}
+      onHome={() => navigate("/")}
+      onLogout={logout}
+    />
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="mt-20 border-t border-[var(--color-border-ap)] bg-[var(--color-bg-gray)] px-[22px] py-6">
+      <div className="mx-auto max-w-[980px] text-[12px] leading-[1.5] tracking-tight text-[color:var(--color-ink-2)] flex flex-wrap justify-between gap-2">
+        <span>Task Manager · sample_cicd</span>
+        <span>CI/CD learning project</span>
       </div>
-    </header>
+    </footer>
   );
 }
 
 export default function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-zinc-50">
+      <div className="min-h-screen bg-[var(--color-bg-light)] flex flex-col">
         <Header />
-        <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <main className="flex-1">
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/confirm" element={<ConfirmSignup />} />
-            <Route path="/" element={<PrivateRoute><TaskList /></PrivateRoute>} />
-            <Route path="/tasks/new" element={<PrivateRoute><TaskForm /></PrivateRoute>} />
-            <Route path="/tasks/:id" element={<PrivateRoute><TaskDetail /></PrivateRoute>} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <TaskList />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/tasks/new"
+              element={
+                <PrivateRoute>
+                  <TaskForm />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/tasks/:id"
+              element={
+                <PrivateRoute>
+                  <TaskDetail />
+                </PrivateRoute>
+              }
+            />
           </Routes>
         </main>
+        <Footer />
       </div>
     </AuthProvider>
   );
