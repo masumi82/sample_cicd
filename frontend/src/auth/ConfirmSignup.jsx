@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import {
+  PillButton,
+  Field,
+  TextInput,
+  InlineBanner,
+  Spinner,
+  HeroShell,
+} from "../components/ui";
 
 export default function ConfirmSignup() {
   const location = useLocation();
@@ -13,6 +21,10 @@ export default function ConfirmSignup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (code.length < 4) {
+      setError("Enter the verification code.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
@@ -26,54 +38,56 @@ export default function ConfirmSignup() {
   };
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="mb-2 text-2xl font-bold text-zinc-900">Confirm Email</h1>
-      <p className="mb-6 text-sm text-zinc-500">
-        Enter the verification code sent to your email.
-      </p>
-
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-zinc-700">
-            Email
-          </label>
-          <input
-            id="email"
+    <HeroShell
+      eyebrow="Step 2 of 2"
+      title="Confirm your email."
+      subtitle={`We sent a verification code to ${email || "your inbox"}.`}
+      footer={
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          className="text-[color:var(--color-apple-link)] no-underline hover:underline"
+        >
+          Back to sign in ›
+        </button>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
+        {error && <InlineBanner tone="error">{error}</InlineBanner>}
+        <Field label="Email" htmlFor="confirm-email">
+          <TextInput
+            id="confirm-email"
             type="email"
-            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-        <div>
-          <label htmlFor="code" className="mb-1 block text-sm font-medium text-zinc-700">
-            Verification Code
-          </label>
-          <input
-            id="code"
-            type="text"
             required
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm tracking-widest focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            placeholder="123456"
           />
+        </Field>
+        <Field label="Verification code" htmlFor="confirm-code" required>
+          <TextInput
+            id="confirm-code"
+            value={code}
+            onChange={(e) =>
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            placeholder="123456"
+            inputMode="numeric"
+            maxLength={6}
+            className="text-[22px] text-center tabular-nums tracking-[0.6em]"
+          />
+        </Field>
+        <div className="flex justify-end mt-1">
+          <PillButton type="submit" variant="primary" size="md" disabled={loading}>
+            {loading ? (
+              <>
+                <Spinner size={12} color="#fff" /> Verifying…
+              </>
+            ) : (
+              <>Confirm ›</>
+            )}
+          </PillButton>
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
-        >
-          {loading ? "Confirming..." : "Confirm"}
-        </button>
       </form>
-    </div>
+    </HeroShell>
   );
 }

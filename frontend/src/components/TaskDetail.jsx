@@ -3,6 +3,45 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getTask, updateTask, deleteTask } from "../api/client";
 import AttachmentList from "./AttachmentList";
 import AttachmentUpload from "./AttachmentUpload";
+import {
+  PillButton,
+  Field,
+  TextInput,
+  TextArea,
+  InlineBanner,
+  Spinner,
+  StatusDisc,
+} from "./ui";
+
+function DeleteConfirmModal({ onCancel, onConfirm }) {
+  return (
+    <div
+      className="fixed inset-0 z-[200] bg-black/45 flex items-center justify-center p-[22px]"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+      onClick={onCancel}
+    >
+      <div
+        className="card-apple w-full max-w-[440px] px-9 py-8 text-center shadow-[0_30px_60px_rgba(0,0,0,0.3)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-[24px] font-semibold tracking-apple-tight m-0 mb-2">
+          Delete this task?
+        </h3>
+        <p className="text-[15px] text-[color:var(--color-ink-2)] tracking-tight m-0 mb-6">
+          This can't be undone. Attachments will be removed as well.
+        </p>
+        <div className="flex gap-3 justify-center">
+          <PillButton variant="ghost" size="md" onClick={onCancel}>
+            Cancel
+          </PillButton>
+          <PillButton variant="danger-solid" size="md" onClick={onConfirm}>
+            Delete task
+          </PillButton>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function TaskDetail() {
   const { id } = useParams();
@@ -13,7 +52,9 @@ export default function TaskDetail() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editError, setEditError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const loadTask = useCallback(() => {
     setLoading(true);
@@ -38,18 +79,19 @@ export default function TaskDetail() {
       setTitle(updated.title);
       setDescription(updated.description || "");
       setEditing(false);
+      setEditError("");
     } catch (err) {
       setError(err.message);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
     try {
       await deleteTask(id);
       navigate("/");
     } catch (err) {
       setError(err.message);
+      setConfirmDelete(false);
     }
   };
 
@@ -59,185 +101,196 @@ export default function TaskDetail() {
 
   const handleSaveEdit = (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
-    handleUpdate({ title: title.trim(), description: description.trim() || null });
+    if (!title.trim()) {
+      setEditError("Title is required.");
+      return;
+    }
+    setEditError("");
+    handleUpdate({
+      title: title.trim(),
+      description: description.trim() || null,
+    });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-primary" />
+      <div className="flex items-center justify-center py-24">
+        <Spinner size={28} color="var(--color-apple-blue)" />
       </div>
     );
   }
 
   if (error && !task) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-600">
-        Error: {error}
-      </div>
+      <section className="mx-auto max-w-[692px] px-[22px] pt-14 pb-24">
+        <InlineBanner tone="error">Error: {error}</InlineBanner>
+      </section>
     );
   }
 
   if (!task) {
     return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-500">
-        Task not found.
-      </div>
+      <section className="mx-auto max-w-[692px] px-[22px] pt-14 pb-24">
+        <div className="card-apple px-9 py-10 text-center text-[color:var(--color-ink-2)]">
+          Task not found.
+        </div>
+      </section>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Back link */}
-      <button
-        onClick={() => navigate("/")}
-        className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900"
-      >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
-        Back to tasks
-      </button>
+    <section className="mx-auto max-w-[720px] px-[22px] pt-10 pb-28 animate-[fadeInUp_420ms_cubic-bezier(0.16,1,0.3,1)]">
+      <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="text-[color:var(--color-apple-link)] text-sm tracking-apple hover:underline"
+        >
+          ‹ All tasks
+        </button>
+      </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        <div className="mb-6">
+          <InlineBanner tone="error">{error}</InlineBanner>
+        </div>
       )}
 
-      {/* Task Card */}
-      <div className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+      {/* Hero card */}
+      <div className="card-apple px-10 py-10 mb-6">
         {editing ? (
-          /* Edit Mode */
-          <form onSubmit={handleSaveEdit} className="p-6 space-y-5">
-            <div>
-              <label htmlFor="edit-title" className="block text-sm font-semibold text-zinc-700">
-                Title <span className="text-danger">*</span>
-              </label>
-              <input
+          <form onSubmit={handleSaveEdit} className="flex flex-col gap-5">
+            {editError && <InlineBanner tone="error">{editError}</InlineBanner>}
+            <Field label="Title" htmlFor="edit-title" required>
+              <TextInput
                 id="edit-title"
-                type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                maxLength={255}
                 autoFocus
-                className="mt-1.5 block w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                maxLength={255}
               />
-            </div>
-            <div>
-              <label htmlFor="edit-description" className="block text-sm font-semibold text-zinc-700">
-                Description
-              </label>
-              <textarea
-                id="edit-description"
+            </Field>
+            <Field label="Description" htmlFor="edit-desc">
+              <TextArea
+                id="edit-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                className="mt-1.5 block w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                rows={5}
               />
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="submit"
-                className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-hover active:scale-[0.98]"
-              >
-                Save Changes
-              </button>
-              <button
+            </Field>
+            <div className="flex justify-end gap-3">
+              <PillButton
                 type="button"
-                onClick={() => setEditing(false)}
-                className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition-all hover:bg-zinc-50"
+                variant="ghost"
+                size="md"
+                onClick={() => {
+                  setTitle(task.title);
+                  setDescription(task.description || "");
+                  setEditing(false);
+                  setEditError("");
+                }}
               >
                 Cancel
-              </button>
+              </PillButton>
+              <PillButton type="submit" variant="primary" size="md">
+                Save changes ›
+              </PillButton>
             </div>
           </form>
         ) : (
-          /* View Mode */
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h2 className={`text-xl font-bold ${task.completed ? "text-zinc-400 line-through" : "text-zinc-900"}`}>
+          <>
+            <div className="flex gap-4 items-start">
+              <div className="pt-2">
+                <StatusDisc
+                  completed={task.completed}
+                  onClick={handleToggleComplete}
+                  size={28}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className={`text-[13px] tracking-tight uppercase font-medium mb-1.5 ${
+                    task.completed
+                      ? "text-[color:var(--color-apple-green)]"
+                      : "text-[color:var(--color-apple-orange)]"
+                  }`}
+                >
+                  {task.completed ? "Completed" : "Active"}
+                </p>
+                <h1
+                  className={`text-apple-h2 m-0 break-words ${
+                    task.completed
+                      ? "text-[color:var(--color-ink-3)] line-through"
+                      : "text-[color:var(--color-ink-1)]"
+                  }`}
+                >
                   {task.title}
-                </h2>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      task.completed
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${task.completed ? "bg-emerald-500" : "bg-amber-500"}`} />
-                    {task.completed ? "Completed" : "Pending"}
-                  </span>
-                </div>
+                </h1>
               </div>
             </div>
 
-            {/* Description */}
             {task.description && (
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-600">
+              <p className="mt-6 ml-11 text-apple-body text-[color:var(--color-ink-1)] whitespace-pre-wrap">
                 {task.description}
               </p>
             )}
 
-            {/* Meta */}
-            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-xs text-zinc-400">
-              <span>Created: {new Date(task.created_at).toLocaleString()}</span>
-              <span>Updated: {new Date(task.updated_at).toLocaleString()}</span>
+            <div className="mt-7 ml-11 flex gap-6 flex-wrap text-apple-caption">
+              <span>Created {new Date(task.created_at).toLocaleString()}</span>
+              <span>Updated {new Date(task.updated_at).toLocaleString()}</span>
             </div>
 
-            {/* Actions */}
-            <div className="mt-6 flex flex-wrap gap-2 border-t border-zinc-100 pt-4">
-              <button
+            <div className="mt-7 ml-11 flex gap-2.5 flex-wrap">
+              <PillButton
+                variant={task.completed ? "ghost" : "primary"}
+                size="md"
                 onClick={handleToggleComplete}
-                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-all active:scale-[0.98] ${
-                  task.completed
-                    ? "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
-                    : "bg-success text-white hover:bg-emerald-600"
-                }`}
               >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                </svg>
-                {task.completed ? "Mark Pending" : "Mark Complete"}
-              </button>
-              <button
+                {task.completed ? "Mark active" : "Mark complete ›"}
+              </PillButton>
+              <PillButton
+                variant="ghost"
+                size="md"
                 onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 active:scale-[0.98]"
               >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
-                </svg>
                 Edit
-              </button>
-              <button
-                onClick={handleDelete}
-                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-danger shadow-sm transition-all hover:bg-red-50 active:scale-[0.98]"
+              </PillButton>
+              <PillButton
+                variant="danger"
+                size="md"
+                onClick={() => setConfirmDelete(true)}
               >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                </svg>
                 Delete
-              </button>
+              </PillButton>
             </div>
-          </div>
+          </>
         )}
       </div>
 
-      {/* Attachments Section */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-zinc-900">Attachments</h3>
+      {/* Attachments card */}
+      <div className="card-apple px-9 py-8">
+        <div className="flex items-baseline justify-between mb-5">
+          <h2 className="text-[28px] font-semibold tracking-apple-headline leading-tight m-0">
+            Attachments.
+          </h2>
         </div>
-        <div className="mt-4">
-          <AttachmentUpload taskId={id} onUploaded={() => setRefreshKey((k) => k + 1)} />
-        </div>
+
+        <AttachmentUpload
+          taskId={id}
+          onUploaded={() => setRefreshKey((k) => k + 1)}
+        />
+
         <div className="mt-4">
           <AttachmentList taskId={id} refreshKey={refreshKey} />
         </div>
       </div>
-    </div>
+
+      {confirmDelete && (
+        <DeleteConfirmModal
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={handleDelete}
+        />
+      )}
+    </section>
   );
 }

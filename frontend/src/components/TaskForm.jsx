@@ -1,22 +1,30 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createTask } from "../api/client";
+import {
+  PillButton,
+  Field,
+  TextInput,
+  TextArea,
+  InlineBanner,
+  Spinner,
+} from "./ui";
 
 export default function TaskForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError("Title is required.");
+      setError("A title is required.");
       return;
     }
+    setError("");
     setSubmitting(true);
-    setError(null);
     try {
       const task = await createTask({
         title: title.trim(),
@@ -30,81 +38,79 @@ export default function TaskForm() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Back link */}
-      <button
-        onClick={() => navigate("/")}
-        className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900"
-      >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
-        Back to tasks
-      </button>
+    <section className="mx-auto max-w-[692px] px-[22px] pt-14 pb-28 animate-[fadeInUp_420ms_cubic-bezier(0.16,1,0.3,1)]">
+      <div className="mb-7">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="text-[color:var(--color-apple-link)] text-sm tracking-apple hover:underline"
+        >
+          ‹ All tasks
+        </button>
+      </div>
 
-      {/* Form Card */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-zinc-900">New Task</h2>
-        <p className="mt-1 text-sm text-zinc-500">Create a new task to track your work.</p>
+      <div className="text-center mb-10">
+        <p className="text-[17px] text-[color:var(--color-ink-1)] tracking-apple mb-2">
+          New task
+        </p>
+        <h1 className="text-apple-h2 m-0 mb-3">What's next?</h1>
+        <p className="text-apple-intro m-0">
+          Give it a name. Add context if you'd like.
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-          <div>
-            <label htmlFor="title" className="block text-sm font-semibold text-zinc-700">
-              Title <span className="text-danger">*</span>
-            </label>
-            <input
-              id="title"
-              type="text"
+      <div className="card-apple px-9 py-8">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {error && <InlineBanner tone="error">{error}</InlineBanner>}
+          <Field label="Title" htmlFor="task-title" required>
+            <TextInput
+              id="task-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={255}
-              placeholder="Enter task title"
+              placeholder="Finish the Q2 deck"
               autoFocus
-              className="mt-1.5 block w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
-          </div>
-
-          <div>
-            <label htmlFor="description" className="block text-sm font-semibold text-zinc-700">
-              Description
-            </label>
-            <textarea
-              id="description"
+          </Field>
+          <Field
+            label="Description"
+            htmlFor="task-desc"
+            hint="Optional. Markdown-friendly."
+          >
+            <TextArea
+              id="task-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              placeholder="Enter task description (optional)"
-              className="mt-1.5 block w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm transition-all placeholder:text-zinc-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              rows={5}
+              placeholder="Add any context, links or notes."
             />
-          </div>
-
-          {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-hover hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting && (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              )}
-              {submitting ? "Creating..." : "Create Task"}
-            </button>
-            <button
+          </Field>
+          <div className="flex justify-end gap-3 mt-1">
+            <PillButton
               type="button"
+              variant="ghost"
+              size="md"
               onClick={() => navigate("/")}
-              className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition-all hover:bg-zinc-50"
             >
               Cancel
-            </button>
+            </PillButton>
+            <PillButton
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <Spinner size={12} color="#fff" /> Creating…
+                </>
+              ) : (
+                <>Create task ›</>
+              )}
+            </PillButton>
           </div>
         </form>
       </div>
-    </div>
+    </section>
   );
 }

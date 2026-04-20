@@ -1,18 +1,79 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useCallback, memo } from "react";
+import { useNavigate } from "react-router-dom";
 import { getTasks } from "../api/client";
+import {
+  PillButton,
+  InlineBanner,
+  Spinner,
+  StatusDisc,
+} from "./ui";
 
 const FILTERS = [
   { key: "all", label: "All" },
-  { key: "pending", label: "Pending" },
+  { key: "pending", label: "Active" },
   { key: "completed", label: "Completed" },
 ];
+
+const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+});
+
+function heroTitle(activeCount) {
+  if (activeCount === 0) return "All caught up.";
+  if (activeCount === 1) return "One thing today.";
+  return `${activeCount} things today.`;
+}
+
+const TaskRow = memo(function TaskRow({ task, onOpen }) {
+  const handleActivate = (e) => {
+    if (e.target.closest("button")) return;
+    onOpen(task);
+  };
+  return (
+    <div
+      role="link"
+      tabIndex={0}
+      onClick={handleActivate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(task);
+        }
+      }}
+      className="w-full grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 py-[18px] px-1 border-b border-black/8 last:border-b-0 transition-colors hover:bg-black/[0.015] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-apple-blue)] rounded-md"
+    >
+      <StatusDisc completed={task.completed} />
+      <div className="min-w-0">
+        <div
+          className={`text-[17px] tracking-apple font-normal truncate ${
+            task.completed
+              ? "text-[color:var(--color-ink-3)] line-through"
+              : "text-[color:var(--color-ink-1)]"
+          }`}
+        >
+          {task.title}
+        </div>
+        {task.description && (
+          <div className="text-[13px] text-[color:var(--color-ink-3)] tracking-tight mt-0.5 truncate">
+            {task.description}
+          </div>
+        )}
+      </div>
+      <div className="text-apple-caption">
+        {DATE_FORMATTER.format(new Date(task.created_at))}
+      </div>
+      <span className="text-[color:var(--color-gray-3)] text-base leading-none">›</span>
+    </div>
+  );
+});
 
 export default function TaskList() {
   const [tasks, setTasks] = useState([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     getTasks()
@@ -21,120 +82,116 @@ export default function TaskList() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === "pending") return !task.completed;
-    if (filter === "completed") return task.completed;
-    return true;
-  });
+  const handleOpen = useCallback(
+    (task) => navigate(`/tasks/${task.id}`),
+    [navigate]
+  );
+
+  let activeCount = 0;
+  const filtered = [];
+  for (const t of tasks) {
+    if (!t.completed) activeCount++;
+    if (
+      filter === "all" ||
+      (filter === "pending" && !t.completed) ||
+      (filter === "completed" && t.completed)
+    ) {
+      filtered.push(t);
+    }
+  }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-primary" />
+      <div className="flex items-center justify-center py-24">
+        <Spinner size={28} color="var(--color-apple-blue)" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-600">
-        Error: {error}
-      </div>
+      <section className="mx-auto max-w-[692px] px-[22px] pt-14 pb-24">
+        <InlineBanner tone="error">Error: {error}</InlineBanner>
+      </section>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-zinc-900">Tasks</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            {tasks.length} task{tasks.length !== 1 && "s"} total
-          </p>
-        </div>
-        <Link
-          to="/tasks/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-hover hover:shadow-md active:scale-[0.98]"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          New Task
-        </Link>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex gap-1 rounded-lg bg-zinc-100 p-1">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
-              filter === f.key
-                ? "bg-white text-zinc-900 shadow-sm"
-                : "text-zinc-500 hover:text-zinc-700"
-            }`}
+    <section className="mx-auto max-w-[980px] px-[22px] pt-16 pb-28 animate-[fadeInUp_420ms_cubic-bezier(0.16,1,0.3,1)]">
+      {/* Hero */}
+      <div className="text-center mb-14">
+        <p className="text-[17px] text-[color:var(--color-ink-1)] tracking-apple mb-2">
+          Your tasks
+        </p>
+        <h1 className="text-apple-hero m-0 mb-4">{heroTitle(activeCount)}</h1>
+        <p className="text-apple-intro max-w-[560px] mx-auto mb-7">
+          Organize what matters. Attach what counts. Finish what you start.
+        </p>
+        <div className="flex gap-3.5 justify-center flex-wrap">
+          <PillButton
+            variant="primary"
+            size="md"
+            onClick={() => navigate("/tasks/new")}
           >
-            {f.label}
-          </button>
-        ))}
+            <span className="text-base leading-none">+</span> New task
+          </PillButton>
+        </div>
       </div>
 
-      {/* Task List */}
-      {filteredTasks.length === 0 ? (
-        <div className="rounded-xl border-2 border-dashed border-zinc-200 py-16 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100">
-            <svg className="h-6 w-6 text-zinc-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
-            </svg>
-          </div>
-          <p className="text-sm font-medium text-zinc-500">No tasks found</p>
-          <p className="mt-1 text-xs text-zinc-400">Create a new task to get started</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filteredTasks.map((task) => (
-            <Link
-              key={task.id}
-              to={`/tasks/${task.id}`}
-              className="group flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition-all hover:border-zinc-300 hover:shadow-md"
-            >
-              {/* Status Circle */}
-              <div
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                  task.completed
-                    ? "border-success bg-success text-white"
-                    : "border-zinc-300 group-hover:border-primary"
+      {/* Segmented filter */}
+      <div className="flex justify-center mb-7">
+        <div className="inline-flex bg-[var(--color-bg-gray)] pill p-1 gap-0.5">
+          {FILTERS.map((f) => {
+            const active = filter === f.key;
+            const count =
+              f.key === "all"
+                ? tasks.length
+                : f.key === "pending"
+                ? activeCount
+                : tasks.length - activeCount;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                className={`pill px-5 py-2 text-[13px] tracking-tight border-0 cursor-pointer transition-all duration-200 ease-[var(--ease-apple)] ${
+                  active
+                    ? "bg-white text-[color:var(--color-ink-1)] font-medium shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                    : "bg-transparent text-[color:var(--color-ink-1)] font-normal"
                 }`}
               >
-                {task.completed && (
-                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="min-w-0 flex-1">
-                <p className={`truncate font-medium ${task.completed ? "text-zinc-400 line-through" : "text-zinc-900"}`}>
-                  {task.title}
-                </p>
-              </div>
-
-              {/* Date */}
-              <span className="shrink-0 text-xs text-zinc-400">
-                {new Date(task.created_at).toLocaleDateString()}
-              </span>
-
-              {/* Arrow */}
-              <svg className="h-4 w-4 shrink-0 text-zinc-300 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </Link>
-          ))}
+                {f.label}
+                <span className="opacity-50 ml-1.5 tabular-nums">{count}</span>
+              </button>
+            );
+          })}
         </div>
-      )}
-    </div>
+      </div>
+
+      {/* List card */}
+      <div className="card-apple max-w-[720px] mx-auto px-7 py-2">
+        {filtered.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-[28px] font-semibold tracking-apple-tight mb-1.5">
+              Nothing here.
+            </p>
+            <p className="text-[15px] text-[color:var(--color-ink-3)] tracking-tight">
+              {filter === "completed"
+                ? "No completed tasks yet."
+                : "Add your first task to get started."}
+            </p>
+          </div>
+        ) : (
+          filtered.map((t) => (
+            <TaskRow key={t.id} task={t} onOpen={handleOpen} />
+          ))
+        )}
+      </div>
+
+      {/* Fine print */}
+      <p className="text-center mt-7 text-apple-caption">
+        {tasks.length} task{tasks.length !== 1 && "s"} total · {activeCount} active
+      </p>
+    </section>
   );
 }
