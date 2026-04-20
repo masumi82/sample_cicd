@@ -1,7 +1,7 @@
 import { getIdToken, signOut } from "../auth/cognito";
 
 const getApiUrl = () => {
-  if (window.APP_CONFIG && window.APP_CONFIG.API_URL) {
+  if (window.APP_CONFIG && typeof window.APP_CONFIG.API_URL === "string") {
     return window.APP_CONFIG.API_URL;
   }
   return "http://localhost:8000";

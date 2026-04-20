@@ -21,11 +21,22 @@ function heroTitle(activeCount) {
 }
 
 function TaskRow({ task, onOpen }) {
+  const handleActivate = (e) => {
+    if (e.target.closest("button")) return;
+    onOpen(task);
+  };
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(task)}
-      className="w-full grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 py-[18px] px-1 border-b border-black/8 last:border-b-0 text-left transition-colors hover:bg-black/[0.015] cursor-pointer"
+    <div
+      role="link"
+      tabIndex={0}
+      onClick={handleActivate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(task);
+        }
+      }}
+      className="w-full grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 py-[18px] px-1 border-b border-black/8 last:border-b-0 transition-colors hover:bg-black/[0.015] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-apple-blue)] rounded-md"
     >
       <StatusDisc completed={task.completed} />
       <div className="min-w-0">
@@ -51,7 +62,7 @@ function TaskRow({ task, onOpen }) {
         })}
       </div>
       <span className="text-[color:var(--color-gray-3)] text-base leading-none">›</span>
-    </button>
+    </div>
   );
 }
 
